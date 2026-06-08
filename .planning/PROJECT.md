@@ -47,7 +47,8 @@ Librarians can issue books, track returns, and see who has what — without pape
 - **Tech Stack**: Next.js (full-stack) + PostgreSQL + Prisma ORM — recommended for unified codebase, strong typing, and relational data fit
 - **Auth**: Role-based access — librarian admin vs. member (student/faculty)
 - **Email**: Transactional email via Resend or Nodemailer; no marketing/bulk email
-- **Deployment**: Standard Node.js hosting (Vercel, Railway, or self-hosted)
+- **Local Dev**: Docker-first — all local development runs through Docker containers; `Dockerfile` + `docker-compose.yml` required from Phase 1
+- **Deployment**: Containerized — production deployment uses Docker images; Railway or self-hosted (not Vercel, incompatible with node-cron + Docker)
 
 ## Key Decisions
 
@@ -56,6 +57,7 @@ Librarians can issue books, track returns, and see who has what — without pape
 | Next.js full-stack over React + separate API | Single repo, API routes co-located with UI, faster dev velocity | — Pending |
 | PostgreSQL over NoSQL | Relational model fits loans, members, books, fines naturally | — Pending |
 | Role-based auth (librarian vs. member) | Different capabilities for staff vs. patrons | — Pending |
+| Docker from day one | Consistent dev environment, no "works on my machine" issues, mirrors production containers | — Pending |
 
 ## Evolution
 
@@ -75,4 +77,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-09 after initialization*
+*Last updated: 2026-06-09 after Docker constraint added*
