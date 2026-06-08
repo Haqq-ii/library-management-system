@@ -55,13 +55,13 @@ All sizes in px mapped to Tailwind v4 utility classes (`text-sm` = 14px, `text-b
 | Role | Size | Weight | Line Height | Tailwind Class |
 |------|------|--------|-------------|----------------|
 | Body | 14px | 400 (regular) | 1.5 | `text-sm font-normal leading-normal` |
-| Label | 14px | 500 (medium) | 1.4 | `text-sm font-medium leading-snug` |
+| Label | 14px | 400 (regular) | 1.4 | `text-sm font-normal leading-snug` |
 | Heading | 20px | 600 (semibold) | 1.2 | `text-xl font-semibold leading-tight` |
-| Display | 24px | 700 (bold) | 1.2 | `text-2xl font-bold leading-tight` |
+| Display | 24px | 600 (semibold) | 1.2 | `text-2xl font-semibold leading-tight` |
 
 **Constraints:**
-- Exactly 4 sizes declared (14, 14, 20, 24px). Body and Label share 14px but differ in weight.
-- Exactly 2 weight tiers in practice: regular/medium (400/500) for content, semibold/bold (600/700) for headings.
+- Exactly 4 sizes declared (14, 14, 20, 24px). Body and Label share 14px and share weight — differentiation is by size context and layout position only.
+- Exactly 2 weights: 400 (regular) for Body and Label; 600 (semibold) for Heading and Display.
 - No custom font loading in Phase 1 — Inter via system font stack. Source: CLAUDE.md (Tailwind v4), CONTEXT.md (discretion area).
 
 ---
@@ -276,6 +276,7 @@ All UI surfaces Phase 1 must deliver:
 - Form fields: `<label>` elements associated via `htmlFor` / shadcn Form pattern — never placeholder-only labels.
 - Color is never the sole differentiator: status badges include text label alongside color.
 - Sidebar navigation: `aria-current="page"` on active link.
+- Mobile sidebar trigger: the hamburger icon button must carry `aria-label="Open navigation"` — it is icon-only and has no visible text.
 - Confirmation dialogs: focus trapped inside dialog; Escape key closes. Managed by Radix Dialog primitive.
 - Destructive buttons: labeled with action verb, not just "OK" or "Yes".
 - Skip-to-main-content link in `<head>` area (hidden until focused) — single implementation, applies to all pages.
