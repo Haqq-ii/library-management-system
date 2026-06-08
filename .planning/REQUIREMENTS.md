@@ -166,10 +166,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RPT-04 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 37 total
-- Mapped to phases: 37
+- v1 requirements: 40 total
+- Mapped to phases: 40
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-09*
-*Last updated: 2026-06-09 after initial definition*
+*Last updated: 2026-06-09 — traceability confirmed during roadmap creation*
