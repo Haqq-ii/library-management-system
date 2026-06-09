@@ -1,81 +1,61 @@
-import { prisma } from "@/lib/db";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+"use client";
 
-export default async function CatalogPage() {
-  const books = await prisma.book.findMany({
-    where: { deletedAt: null },
-    include: { author: true, copies: true },
-    orderBy: { title: "asc" },
-  });
+import { useState, useEffect, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { BookCard } from "@/components/catalog/BookCard";
+import { searchCatalog } from "@/features/catalog/catalog-search";
+import type { BookCardData } from "@/features/catalog/catalog-search";
+
+export default function CatalogPage() {
+  const [query, setQuery] = useState("");
+  const [books, setBooks] = useState<BookCardData[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    searchCatalog("").then((r) => {
+      if (r.success) setBooks(r.data);
+      setLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      const result = await searchCatalog(query);
+      if (result.success) setBooks(result.data);
+    }, 300);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [query, loaded]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Search Catalog</h1>
-        <span className="text-sm text-muted-foreground">
-          {books.length} title{books.length !== 1 ? "s" : ""} available
-        </span>
-      </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Title</TableHead>
-            <TableHead>Author</TableHead>
-            <TableHead>Genre</TableHead>
-            <TableHead>Publisher</TableHead>
-            <TableHead className="text-right">Available</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {books.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                No books in the catalog yet.
-              </TableCell>
-            </TableRow>
-          ) : (
-            books.map((book) => {
-              const available = book.copies.filter(
-                (c) => c.status === "AVAILABLE"
-              ).length;
-              return (
-                <TableRow key={book.id}>
-                  <TableCell className="font-medium">{book.title}</TableCell>
-                  <TableCell>{book.author.name}</TableCell>
-                  <TableCell>
-                    {book.genre ? (
-                      <Badge variant="outline">{book.genre}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {book.publisher ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {available > 0 ? (
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                        {available} available
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive">Checked out</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
+      <h1 className="text-2xl font-semibold">Search Catalog</h1>
+      <Input
+        placeholder="Search by title, author, or ISBN…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="max-w-md"
+      />
+      {!loaded ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : books.length === 0 ? (
+        <div className="py-12 text-center">
+          <p className="font-medium">No books found</p>
+          <p className="text-sm text-muted-foreground">
+            Try a different title, author, or ISBN.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {books.map((book) => (
+            <BookCard key={book.id} book={book} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
