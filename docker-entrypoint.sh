@@ -28,5 +28,5 @@ else
   echo "Database already seeded (User count: $USER_COUNT), skipping seed."
 fi
 
-echo "Starting Next.js..."
-exec npm run start
+echo "Starting Next.js dev server..."
+exec npm run dev
