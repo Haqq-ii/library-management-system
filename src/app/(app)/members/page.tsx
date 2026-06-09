@@ -1,18 +1,20 @@
 import { prisma } from "@/lib/db";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { MemberTable } from "@/features/members/MemberTable";
 
-export default async function MembersPage() {
-  const members = await prisma.member.findMany({
-    include: { user: true },
-    orderBy: { joinedAt: "desc" },
+interface MembersPageProps {
+  searchParams: Promise<{ inactive?: string }>;
+}
+
+export default async function MembersPage({ searchParams }: MembersPageProps) {
+  const params = await searchParams;
+  const showInactive = params.inactive === "1";
+
+  const members = await prisma.user.findMany({
+    where: showInactive
+      ? { role: "MEMBER" }
+      : { role: "MEMBER", deletedAt: null },
+    include: { member: true },
+    orderBy: { name: "asc" },
   });
 
   return (
@@ -23,51 +25,7 @@ export default async function MembersPage() {
           {members.length} member{members.length !== 1 ? "s" : ""}
         </span>
       </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Member #</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {members.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                No members registered yet.
-              </TableCell>
-            </TableRow>
-          ) : (
-            members.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell className="font-medium">{member.user.name}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {member.user.email}
-                </TableCell>
-                <TableCell className="font-mono text-xs">
-                  {member.memberNumber}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{member.memberType}</Badge>
-                </TableCell>
-                <TableCell>
-                  {member.isActive ? (
-                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                      Active
-                    </Badge>
-                  ) : (
-                    <Badge variant="destructive">Inactive</Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <MemberTable members={members} showInactive={showInactive} />
     </div>
   );
 }
