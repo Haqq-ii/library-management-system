@@ -1,0 +1,221 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Better Auth core tables ──────────────────────────────
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Better Auth admin plugin fields
+  role          String?   @default("MEMBER")
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime? @db.Timestamptz(3)
+
+  sessions      Session[]
+  accounts      Account[]
+  member        Member?
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  expiresAt      DateTime @db.Timestamptz(3)
+  token          String   @unique
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(3)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @db.Timestamptz(3)
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// ── Domain models ────────────────────────────────────────
+enum MemberType {
+  STUDENT
+  FACULTY
+  STAFF
+}
+
+model Member {
+  id           String     @id @default(cuid())
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memberNumber String     @unique
+  memberType   MemberType @default(STUDENT)
+  isActive     Boolean    @default(true)
+  joinedAt     DateTime   @default(now()) @db.Timestamptz(3)
+
+  loans        Loan[]
+  reservations Reservation[]
+  fines        Fine[]
+}
+
+model Author {
+  id    String @id @default(cuid())
+  name  String @unique
+  books Book[]
+}
+
+model Book {
+  id            String     @id @default(cuid())
+  isbn          String     @unique
+  title         String
+  authorId      String
+  author        Author     @relation(fields: [authorId], references: [id])
+  genre         String?
+  publisher     String?
+  publishedYear Int?
+  description   String?
+  coverUrl      String?
+  totalCopies   Int        @default(0)
+  deletedAt     DateTime?  @db.Timestamptz(3)
+  createdAt     DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime   @updatedAt @db.Timestamptz(3)
+
+  copies       BookCopy[]
+  reservations Reservation[]
+}
+
+enum CopyStatus {
+  AVAILABLE
+  CHECKED_OUT
+  RESERVED
+  LOST
+  WITHDRAWN
+}
+
+model BookCopy {
+  id        String     @id @default(cuid())
+  bookId    String
+  book      Book       @relation(fields: [bookId], references: [id])
+  barcode   String     @unique
+  status    CopyStatus @default(AVAILABLE)
+  condition String?
+  addedAt   DateTime   @default(now()) @db.Timestamptz(3)
+
+  loans Loan[]
+}
+
+// ── Loan policy (D-15: seeded, not hardcoded) ────────────
+model LoanPolicy {
+  id                  String     @id @default(cuid())
+  memberType          MemberType @unique
+  loanDays            Int
+  maxRenewals         Int        @default(2)
+  fineDailyRate       Decimal    @db.Decimal(10, 2)
+  maxUnpaidFineAmount Decimal    @db.Decimal(10, 2) @default(10.00)
+}
+
+// ── Phase 2+ schema stubs (schema exists, feature inactive) ─
+enum LoanStatus {
+  ACTIVE
+  OVERDUE
+  RETURNED
+  LOST
+}
+
+model Loan {
+  id         String     @id @default(cuid())
+  copyId     String
+  copy       BookCopy   @relation(fields: [copyId], references: [id])
+  memberId   String
+  member     Member     @relation(fields: [memberId], references: [id])
+  issuedAt   DateTime   @default(now()) @db.Timestamptz(3)
+  dueAt      DateTime   @db.Timestamptz(3)
+  returnedAt DateTime?  @db.Timestamptz(3)
+  renewCount Int        @default(0)
+  status     LoanStatus @default(ACTIVE)
+
+  fines Fine[]
+}
+
+enum FineStatus {
+  UNPAID
+  PAID
+  WAIVED
+}
+
+model Fine {
+  id        String     @id @default(cuid())
+  loanId    String
+  loan      Loan       @relation(fields: [loanId], references: [id])
+  memberId  String
+  member    Member     @relation(fields: [memberId], references: [id])
+  amount    Decimal    @db.Decimal(10, 2)
+  reason    String     @default("OVERDUE")
+  status    FineStatus @default(UNPAID)
+  createdAt DateTime   @default(now()) @db.Timestamptz(3)
+  paidAt    DateTime?  @db.Timestamptz(3)
+  waivedAt  DateTime?  @db.Timestamptz(3)
+  waivedBy  String?
+}
+
+enum ReservationStatus {
+  PENDING
+  READY
+  FULFILLED
+  CANCELLED
+}
+
+model Reservation {
+  id            String            @id @default(cuid())
+  bookId        String
+  book          Book              @relation(fields: [bookId], references: [id])
+  memberId      String
+  member        Member            @relation(fields: [memberId], references: [id])
+  requestedAt   DateTime          @default(now()) @db.Timestamptz(3)
+  expiresAt     DateTime?         @db.Timestamptz(3)
+  status        ReservationStatus @default(PENDING)
+  queuePosition Int
+  notifiedAt    DateTime?         @db.Timestamptz(3)
+}
+
+model NotificationLog {
+  id       String   @id @default(cuid())
+  memberId String
+  type     String
+  sentAt   DateTime @default(now()) @db.Timestamptz(3)
+  channel  String   @default("EMAIL")
+  success  Boolean
+  metadata Json?
+}
