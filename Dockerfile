@@ -3,6 +3,7 @@ FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN npm install --frozen-lockfile
 
 # Stage 2: development — target used by docker-compose for local dev
