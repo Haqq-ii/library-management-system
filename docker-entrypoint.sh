@@ -6,6 +6,13 @@ until pg_isready -h "$DB_HOST" -p 5432 -U "$DB_USER"; do
   sleep 1
 done
 
+if [ -z "$DATABASE_URL" ]; then
+  echo "ERROR: DATABASE_URL is not set — check env_file in docker-compose.yml"
+  exit 1
+fi
+echo "DATABASE_URL present (db host: $DB_HOST)"
+export DATABASE_URL="$DATABASE_URL"
+
 echo "Running prisma generate..."
 npx prisma generate
 
