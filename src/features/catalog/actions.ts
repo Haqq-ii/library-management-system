@@ -129,37 +129,7 @@ export async function softDeleteBook(id: string): Promise<ActionResult<void>> {
   }
 }
 
-export async function addCopy(
-  bookId: string,
-  barcode?: string
-): Promise<ActionResult<{ id: string }>> {
-  try {
-    await requireRole("LIBRARIAN");
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "FORBIDDEN" };
-  }
-
-  try {
-    const generatedBarcode =
-      barcode ?? `BC-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-
-    const copy = await prisma.bookCopy.create({
-      data: { bookId, barcode: generatedBarcode, status: "AVAILABLE" },
-    });
-
-    await prisma.book.update({
-      where: { id: bookId },
-      data: { totalCopies: { increment: 1 } },
-    });
-
-    revalidatePath(`/books/${bookId}`);
-    revalidatePath("/books");
-    return { success: true, data: { id: copy.id } };
-  } catch (err) {
-    console.error("[addCopy]", err);
-    return { success: false, error: "DB_ERROR" };
-  }
-}
+export { addCopy, setCopyStatus } from "./copy-actions";
 
 export async function fetchBookByISBN(isbn: string): Promise<
   ActionResult<{
