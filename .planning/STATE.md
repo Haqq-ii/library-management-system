@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: ~
-last_updated: "2026-06-09T23:15:00.000Z"
-last_activity: 2026-06-09 -- Plan 01-06 complete (commit 9b091ba)
+last_updated: "2026-06-10T00:10:00.000Z"
+last_activity: 2026-06-10 -- Phase 01 review fixes (commit dd52c44)
 progress:
   total_phases: 5
   completed_phases: 1
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-06-09)
 
 ## Current Position
 
-Phase: 01 (foundation) — COMPLETE
+Phase: 01 (foundation) — COMPLETE + REVIEWED
 Plan: 8 of 8 complete (01-01 ✅ 01-02 ✅ 01-03 ✅ 01-04 ✅ 01-05 ✅ 01-06 ✅ 01-07 ✅ 01-08 ✅)
-Status: All plans complete — Phase 01 foundation delivered
-Last activity: 2026-06-09 -- Plan 01-06 complete (commit 9b091ba)
+Status: All plans complete, manual testing review done — ready for Phase 02
+Last activity: 2026-06-10 -- Phase 01 review fixes (commit dd52c44)
 
 Progress: [██████████] 100%
 
@@ -65,6 +65,7 @@ Recent decisions affecting current work:
 - [Pre-Phase 1]: All date columns use `@db.Timestamptz`; all due-date logic in UTC
 - [Pre-Phase 1]: Checkout uses `prisma.$transaction` with `SELECT FOR UPDATE` to prevent availability race condition
 - [Pre-Phase 1]: Docker-first dev environment from commit 1; Railway for production (persistent node-cron process)
+- [Phase 01 review]: /books/[id] is accessible to all authenticated users; isLibrarian passed as prop gates management UI — same page serves member read-only and librarian CRUD views
 
 ### Pending Todos
 
