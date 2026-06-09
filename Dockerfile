@@ -2,7 +2,7 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install --frozen-lockfile
 
 # Stage 2: development — target used by docker-compose for local dev
 FROM node:24-alpine AS development
