@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   Card,
@@ -16,17 +18,22 @@ interface BookDetailPageProps {
 export default async function BookDetailPage({ params }: BookDetailPageProps) {
   const { id } = await params;
 
-  const book = await prisma.book.findUnique({
-    where: { id, deletedAt: null },
-    include: {
-      author: true,
-      copies: { orderBy: { addedAt: "asc" } },
-    },
-  });
+  const [book, session] = await Promise.all([
+    prisma.book.findUnique({
+      where: { id, deletedAt: null },
+      include: {
+        author: true,
+        copies: { orderBy: { addedAt: "asc" } },
+      },
+    }),
+    auth.api.getSession({ headers: await headers() }),
+  ]);
 
   if (!book) {
     notFound();
   }
+
+  const isLibrarian = session?.user.role === "LIBRARIAN";
 
   return (
     <div className="space-y-6">
@@ -75,7 +82,7 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
         </CardContent>
       </Card>
 
-      <CopiesSubTable bookId={book.id} copies={book.copies} />
+      <CopiesSubTable bookId={book.id} copies={book.copies} isLibrarian={isLibrarian} />
     </div>
   );
 }

@@ -221,6 +221,9 @@ export function CatalogTable({
                           <span className="sr-only">Open menu</span>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => router.push(`/books/${book.id}`)}>
+                            Manage copies
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEdit(book)}>
                             Edit
                           </DropdownMenuItem>
