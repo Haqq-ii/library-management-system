@@ -229,15 +229,17 @@ export function AppSidebar({ role, user }: AppSidebarProps) {
       <div className="flex lg:hidden">
         {/* Hamburger trigger — visible in app header area */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Open navigation"
-              className="fixed left-4 top-3 z-40 h-10 w-10 lg:hidden"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
+          <SheetTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Open navigation"
+                className="fixed left-4 top-3 z-40 h-10 w-10 lg:hidden"
+              />
+            }
+          >
+            <Menu className="h-5 w-5" />
           </SheetTrigger>
           <SheetContent side="left" className="w-60 p-0">
             <SheetHeader className="sr-only">
