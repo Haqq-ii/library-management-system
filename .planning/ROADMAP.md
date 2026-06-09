@@ -31,7 +31,16 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Librarian can register a member (student or faculty), edit their profile, and deactivate the account without losing their loan history
   4. Member can log in and search the catalog, seeing real-time copy availability per title
   5. Attempting to access a librarian-only page as a member returns an access-denied response verified at the Server Action level, not only middleware
-**Plans**: TBD
+**Plans**: 8 plans
+Plans:
+- [ ] 01-01-PLAN.md — Scaffold Next.js 16 + shadcn, full Prisma schema, test harness, initial migration (Walking Skeleton)
+- [ ] 01-02-PLAN.md — Core lib (db/auth/require-role), Better Auth handler, seed data (Walking Skeleton)
+- [ ] 01-03-PLAN.md — Docker stack + env configs + entrypoint; BLOCKING docker compose up smoke test (Walking Skeleton)
+- [ ] 01-04-PLAN.md — Auth UI: login card, session-gated shell, role-aware sidebar, dashboard (Walking Skeleton)
+- [ ] 01-05-PLAN.md — Catalog CRUD: Server Actions + ISBN auto-fill, sortable table, slide-over form
+- [ ] 01-06-PLAN.md — Book detail page + copies sub-table (copy management)
+- [ ] 01-07-PLAN.md — Member management CRUD: actions, table, slide-over register/edit form
+- [ ] 01-08-PLAN.md — Member-facing: catalog search with availability, profile, my-loans empty state
 **UI hint**: yes
 
 ### Phase 2: Circulation Core
@@ -93,7 +102,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/8 | Planned | - |
 | 2. Circulation Core | 0/TBD | Not started | - |
 | 3. Fines, Reservations, Renewals & Audit | 0/TBD | Not started | - |
 | 4. Notifications & Backups | 0/TBD | Not started | - |
