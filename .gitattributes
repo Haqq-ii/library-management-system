@@ -1,0 +1,5 @@
+# Force LF for files that must not have CRLF in containers
+*.sh text eol=lf
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+docker-entrypoint.sh text eol=lf
