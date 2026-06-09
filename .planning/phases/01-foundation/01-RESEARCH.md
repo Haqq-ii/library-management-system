@@ -938,17 +938,17 @@ volumes:
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Better Auth schema field name for role**
    - What we know: The admin plugin adds a `role` field to the User table defaulting to `"user"`. The docs show `session.user.role`.
    - What's unclear: Whether the field is exactly `role` (string) or a nested relation. The role values used in our domain are `"LIBRARIAN"` and `"MEMBER"` (not `"admin"` / `"user"`).
-   - Recommendation: Run `npx auth@latest generate` during Wave 0 and inspect the generated Prisma schema to confirm the exact field name. Adjust `requireRole()` accordingly. The planner should include a verification task after the auth scaffold step.
+   - RESOLVED: Plan 01-02 Task 1 resolves this at execution time — executor runs `npx auth@latest generate`, inspects the generated Prisma schema, and verifies the field is `role: String?` on User. If Better Auth nests it differently, `requireRole()` is adjusted accordingly and noted in SUMMARY. The role values `"LIBRARIAN"` / `"MEMBER"` are set explicitly in the seed script; Better Auth's own `"admin"` / `"user"` defaults are overridden on first login via Better Auth's admin plugin `setRole()`.
 
 2. **`prisma db seed` conditional check in entrypoint (D-03)**
    - What we know: The entrypoint must check if the User table is empty before seeding.
    - What's unclear: The exact `prisma db execute` syntax for a simple row count on startup in a shell script.
-   - Recommendation: The planner should specify the seed-check using `psql` (available in the Postgres Docker image) rather than `prisma db execute`, since `psql` is more reliable in entrypoint scripts: `psql -c "SELECT COUNT(*) FROM \"User\""`.
+   - RESOLVED: Plan 01-03 Task 1 resolves this — the entrypoint script uses `psql "$DATABASE_URL" -t -c 'SELECT COUNT(*) FROM "User"'` executed within the app container, which has `postgresql-client` installed as a Docker image layer. This is more reliable than `prisma db execute` in shell scripts and avoids non-TTY issues.
 
 ---
 
