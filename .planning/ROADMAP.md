@@ -74,7 +74,19 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Librarian can process a return — the loan closes, copy status returns to AVAILABLE (or triggers hold queue), and an overdue fine record is created if the return is late
   4. Librarian can view all active loans sorted by due date; member can view their own active loans and full loan history
 
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+
+**Wave 1**
+
+- [x] 02-01-PLAN.md — Checkout slice: shadcn tabs/popover/command, loan-search, checkoutBook (SELECT FOR UPDATE + due-date), CheckoutSheet, LoansTable Active tab, /loans page, sidebar activation
+- [x] 02-03-PLAN.md — Member my-loans slice: two-section Active + History layout with overdue highlighting
+
+**Wave 2** *(blocked on 02-01)*
+
+- [ ] 02-02-PLAN.md — Return slice: returnBook (close loan, overdue fine, hold advance), ReturnModal, Return action + All Loans tab in LoansTable
+
+**UI hint**: yes
 
 ### Phase 3: Fines, Reservations, Renewals & Audit
 
@@ -133,7 +145,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/8 | In Progress|  |
-| 2. Circulation Core | 0/TBD | Not started | - |
+| 2. Circulation Core | 2/3 | In Progress|  |
 | 3. Fines, Reservations, Renewals & Audit | 0/TBD | Not started | - |
 | 4. Notifications & Backups | 0/TBD | Not started | - |
 | 5. Reports & Analytics | 0/TBD | Not started | - |

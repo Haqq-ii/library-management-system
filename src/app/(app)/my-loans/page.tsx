@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { isLoanOverdue, partitionLoans } from "@/features/loans/loan-display";
 
 export default async function MyLoansPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -38,39 +39,119 @@ export default async function MyLoansPage() {
   }
 
   const loans = member.loans;
+  const { active, history } = partitionLoans(loans);
+
+  // Sort active loans by dueAt ascending (soonest due first)
+  const sortedActive = [...active].sort(
+    (a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime()
+  );
+
+  // History is already in reverse-chronological order (issuedAt: "desc" from query)
+  const sortedHistory = history;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">My Loans</h1>
-        <span className="text-sm text-muted-foreground">
-          {loans.length} loan{loans.length !== 1 ? "s" : ""}
-        </span>
-      </div>
+    <div className="space-y-8">
+      <h1 className="text-2xl font-semibold">My Loans</h1>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Book</TableHead>
-            <TableHead>Author</TableHead>
-            <TableHead>Issued</TableHead>
-            <TableHead>Due</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {loans.length === 0 ? (
+      {/* Active Loans section */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">Active Loans</h2>
+          <span className="text-sm text-muted-foreground">
+            ({sortedActive.length})
+          </span>
+        </div>
+
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                No active loans
-              </TableCell>
+              <TableHead>Book</TableHead>
+              <TableHead>Author</TableHead>
+              <TableHead>Issued</TableHead>
+              <TableHead>Due</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
-          ) : (
-            loans.map((loan) => {
-              const isOverdue =
-                loan.status === "OVERDUE" ||
-                (loan.status === "ACTIVE" && new Date(loan.dueAt) < new Date());
-              return (
+          </TableHeader>
+          <TableBody>
+            {sortedActive.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="text-center text-muted-foreground py-8"
+                >
+                  No active loans
+                </TableCell>
+              </TableRow>
+            ) : (
+              sortedActive.map((loan) => {
+                const overdue = isLoanOverdue(loan);
+                return (
+                  <TableRow
+                    key={loan.id}
+                    className={overdue ? "bg-red-50" : undefined}
+                  >
+                    <TableCell className="font-medium">
+                      {loan.copy.book.title}
+                    </TableCell>
+                    <TableCell>{loan.copy.book.author.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(loan.issuedAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell
+                      className={
+                        overdue ? "text-red-600 font-medium" : "text-sm"
+                      }
+                    >
+                      {new Date(loan.dueAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {overdue ? (
+                        <Badge variant="destructive">Overdue</Badge>
+                      ) : (
+                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                          Active
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </section>
+
+      {/* Loan History section */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">Loan History</h2>
+          <span className="text-sm text-muted-foreground">
+            ({sortedHistory.length})
+          </span>
+        </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Book</TableHead>
+              <TableHead>Author</TableHead>
+              <TableHead>Issued</TableHead>
+              <TableHead>Due</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedHistory.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="text-center text-muted-foreground py-8"
+                >
+                  No past loans
+                </TableCell>
+              </TableRow>
+            ) : (
+              sortedHistory.map((loan) => (
                 <TableRow key={loan.id}>
                   <TableCell className="font-medium">
                     {loan.copy.book.title}
@@ -79,30 +160,18 @@ export default async function MyLoansPage() {
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(loan.issuedAt).toLocaleDateString()}
                   </TableCell>
-                  <TableCell
-                    className={
-                      isOverdue ? "text-red-600 font-medium" : "text-sm"
-                    }
-                  >
+                  <TableCell className="text-sm">
                     {new Date(loan.dueAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    {loan.returnedAt ? (
-                      <Badge variant="outline">Returned</Badge>
-                    ) : isOverdue ? (
-                      <Badge variant="destructive">Overdue</Badge>
-                    ) : (
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                        Active
-                      </Badge>
-                    )}
+                    <Badge variant="outline">Returned</Badge>
                   </TableCell>
                 </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </section>
     </div>
   );
 }
