@@ -103,3 +103,157 @@ export async function checkoutBook(
     return { success: false, error: "DB_ERROR" };
   }
 }
+
+export async function returnBook(
+  loanId: string
+): Promise<ActionResult<{ holdTriggered: boolean; holdMemberName?: string }>> {
+  // Step 1: Auth guard (T-02-06 — requireRole first, middleware not trusted CVE-2025-29927)
+  try {
+    await requireRole("LIBRARIAN");
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "FORBIDDEN",
+    };
+  }
+
+  // Step 2: Run everything inside a single transaction (T-02-08 — atomic return)
+  try {
+    const data = await prisma.$transaction(
+      async (tx: {
+        loan: {
+          findUnique: (args: unknown) => Promise<{
+            id: string;
+            copyId: string;
+            memberId: string;
+            dueAt: Date;
+            returnedAt: Date | null;
+            copy: { id: string; bookId: string; book: { id: string; title: string } };
+            member: { id: string; memberType: string; user: { id: string; name: string } };
+          } | null>;
+          update: (args: unknown) => Promise<{ id: string }>;
+        };
+        fine: {
+          create: (args: unknown) => Promise<{ id: string }>;
+        };
+        bookCopy: {
+          update: (args: unknown) => Promise<{ id: string }>;
+        };
+        loanPolicy: {
+          findUnique: (args: unknown) => Promise<{ fineDailyRate: number } | null>;
+        };
+        reservation: {
+          findFirst: (args: unknown) => Promise<{
+            id: string;
+            bookId: string;
+            memberId: string;
+            status: string;
+            queuePosition: number;
+            member: { id: string; user: { id: string; name: string } };
+          } | null>;
+          update: (args: unknown) => Promise<{ id: string }>;
+        };
+      }) => {
+        // Load the loan with copy (including bookId) and member info
+        const loan = await tx.loan.findUnique({
+          where: { id: loanId },
+          include: {
+            copy: { include: { book: true } },
+            member: { include: { user: true } },
+          },
+        } as unknown as Parameters<typeof tx.loan.findUnique>[0]);
+
+        if (!loan) {
+          throw new Error("NOT_FOUND");
+        }
+
+        // Guard: reject double-return (T-02-07 idempotency)
+        if (loan.returnedAt !== null) {
+          throw new Error("ALREADY_RETURNED");
+        }
+
+        const now = new Date();
+        const bookId = loan.copy.bookId;
+
+        // Compute overdue days using UTC epoch math (PITFALLS section 4 — no toLocaleDateString)
+        const overdueMs = now.getTime() - new Date(loan.dueAt).getTime();
+        const overdueDays = Math.max(0, Math.ceil(overdueMs / (24 * 60 * 60 * 1000)));
+
+        // Create fine if overdue (T-02-10 — amount derived server-side from policy)
+        if (overdueDays > 0) {
+          const policy = await tx.loanPolicy.findUnique({
+            where: { memberType: loan.member.memberType },
+          } as unknown as Parameters<typeof tx.loanPolicy.findUnique>[0]);
+
+          if (policy) {
+            const fineAmount = Number(policy.fineDailyRate) * overdueDays;
+            await tx.fine.create({
+              data: {
+                loanId,
+                memberId: loan.memberId,
+                amount: fineAmount,
+                reason: "OVERDUE",
+                status: "UNPAID",
+              },
+            } as unknown as Parameters<typeof tx.fine.create>[0]);
+          }
+          // Fallback: if no policy found, skip fine but still close the loan
+          // (can happen if policy was deleted after the loan was issued)
+        }
+
+        // Close the loan
+        await tx.loan.update({
+          where: { id: loanId },
+          data: { returnedAt: now, status: "RETURNED" },
+        } as unknown as Parameters<typeof tx.loan.update>[0]);
+
+        // Hold check (D-09): find earliest PENDING reservation for this book title
+        const pendingReservation = await tx.reservation.findFirst({
+          where: { bookId, status: "PENDING" },
+          orderBy: [{ queuePosition: "asc" }, { requestedAt: "asc" }],
+          include: { member: { include: { user: true } } },
+        } as unknown as Parameters<typeof tx.reservation.findFirst>[0]);
+
+        if (pendingReservation) {
+          // Set copy to RESERVED and advance the reservation to READY
+          await tx.bookCopy.update({
+            where: { id: loan.copyId },
+            data: { status: "RESERVED" },
+          } as unknown as Parameters<typeof tx.bookCopy.update>[0]);
+
+          await tx.reservation.update({
+            where: { id: pendingReservation.id },
+            data: { status: "READY", notifiedAt: now },
+          } as unknown as Parameters<typeof tx.reservation.update>[0]);
+
+          return {
+            holdTriggered: true,
+            holdMemberName: pendingReservation.member.user.name,
+          };
+        } else {
+          // No hold: set copy back to AVAILABLE
+          await tx.bookCopy.update({
+            where: { id: loan.copyId },
+            data: { status: "AVAILABLE" },
+          } as unknown as Parameters<typeof tx.bookCopy.update>[0]);
+
+          return { holdTriggered: false };
+        }
+      }
+    );
+
+    // Step 3: Revalidate pages and return success
+    revalidatePath("/loans");
+    revalidatePath("/my-loans");
+    return { success: true, data };
+  } catch (err) {
+    if (err instanceof Error && err.message === "ALREADY_RETURNED") {
+      return { success: false, error: "ALREADY_RETURNED" };
+    }
+    if (err instanceof Error && err.message === "NOT_FOUND") {
+      return { success: false, error: "NOT_FOUND" };
+    }
+    console.error("[returnBook]", err);
+    return { success: false, error: "DB_ERROR" };
+  }
+}
