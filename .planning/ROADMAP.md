@@ -79,8 +79,8 @@ Plans:
 
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Checkout slice: shadcn tabs/popover/command, loan-search, checkoutBook (SELECT FOR UPDATE + due-date), CheckoutSheet, LoansTable Active tab, /loans page, sidebar activation
-- [ ] 02-03-PLAN.md — Member my-loans slice: two-section Active + History layout with overdue highlighting
+- [x] 02-01-PLAN.md — Checkout slice: shadcn tabs/popover/command, loan-search, checkoutBook (SELECT FOR UPDATE + due-date), CheckoutSheet, LoansTable Active tab, /loans page, sidebar activation
+- [x] 02-03-PLAN.md — Member my-loans slice: two-section Active + History layout with overdue highlighting
 
 **Wave 2** *(blocked on 02-01)*
 
@@ -145,7 +145,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/8 | In Progress|  |
-| 2. Circulation Core | 0/3 | Not started | - |
+| 2. Circulation Core | 2/3 | In Progress|  |
 | 3. Fines, Reservations, Renewals & Audit | 0/TBD | Not started | - |
 | 4. Notifications & Backups | 0/TBD | Not started | - |
 | 5. Reports & Analytics | 0/TBD | Not started | - |
