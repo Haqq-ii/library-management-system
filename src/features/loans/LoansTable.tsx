@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import {
   Table,
   TableBody,
@@ -13,7 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { CheckoutSheet } from "./CheckoutSheet";
+import { ReturnModal } from "./ReturnModal";
+import { returnBook } from "./actions";
 
 // Type shapes inferred from Prisma include
 interface LoanData {
@@ -30,6 +33,7 @@ interface LoanData {
     };
   };
   member: {
+    memberType: string;
     user: { name: string };
   };
 }
@@ -37,6 +41,7 @@ interface LoanData {
 interface LoanPolicy {
   memberType: string;
   loanDays: number;
+  fineDailyRate: number | { toNumber: () => number };
 }
 
 interface LoansTableProps {
@@ -45,7 +50,21 @@ interface LoansTableProps {
   policies: LoanPolicy[];
 }
 
+interface ReturnTarget {
+  id: string;
+  memberName: string;
+  daysOverdue: number;
+  fineAmount: number;
+}
+
 const PAGE_SIZE = 20;
+
+function getFineRate(policy: LoanPolicy): number {
+  if (typeof policy.fineDailyRate === "object" && policy.fineDailyRate !== null) {
+    return policy.fineDailyRate.toNumber();
+  }
+  return Number(policy.fineDailyRate);
+}
 
 function LoanStatusBadge({ loan }: { loan: LoanData }) {
   if (loan.returnedAt) {
@@ -71,6 +90,9 @@ function ActiveLoansTab({
 }) {
   const [page, setPage] = useState(1);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [returnTarget, setReturnTarget] = useState<ReturnTarget | null>(null);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const activeLoans = useMemo(
     () =>
@@ -85,6 +107,47 @@ function ActiveLoansTab({
 
   const totalPages = Math.max(1, Math.ceil(activeLoans.length / PAGE_SIZE));
   const paginated = activeLoans.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function handleReturn(loan: LoanData, now: Date) {
+    const dueDate = new Date(loan.dueAt);
+    const isOverdue =
+      loan.status === "OVERDUE" ||
+      (loan.status === "ACTIVE" && dueDate < now);
+
+    if (isOverdue) {
+      // Compute days overdue for the modal
+      const overdueMs = now.getTime() - dueDate.getTime();
+      const daysOverdue = Math.max(0, Math.ceil(overdueMs / (24 * 60 * 60 * 1000)));
+      // Look up fine rate from policy matching member type
+      const policy = policies.find((p) => p.memberType === loan.member.memberType);
+      const fineRate = policy ? getFineRate(policy) : 0;
+      const fineAmount = fineRate * daysOverdue;
+
+      setReturnTarget({
+        id: loan.id,
+        memberName: loan.member.user.name,
+        daysOverdue,
+        fineAmount,
+      });
+      setIsReturnModalOpen(true);
+    } else {
+      // On-time return: call directly without modal
+      startTransition(async () => {
+        const result = await returnBook(loan.id);
+        if (result.success) {
+          if (result.data.holdTriggered) {
+            toast.success(
+              `Returned. Hold triggered for ${result.data.holdMemberName} — copy reserved.`
+            );
+          } else {
+            toast.success("Book returned successfully.");
+          }
+        } else {
+          toast.error("Couldn't process return. Please try again.");
+        }
+      });
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -106,7 +169,7 @@ function ActiveLoansTab({
                 <TableHead>Copy</TableHead>
                 <TableHead>Due Date</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-16">Actions</TableHead>
+                <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -145,12 +208,11 @@ function ActiveLoansTab({
                       <LoanStatusBadge loan={loan} />
                     </TableCell>
                     <TableCell>
-                      {/* Return button placeholder — wired in plan 02-02 */}
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled
-                        title="Return (coming in next plan)"
+                        disabled={isPending}
+                        onClick={() => handleReturn(loan, new Date())}
                       >
                         Return
                       </Button>
@@ -192,6 +254,104 @@ function ActiveLoansTab({
         onOpenChange={setIsCheckoutOpen}
         policies={policies}
       />
+
+      <ReturnModal
+        open={isReturnModalOpen}
+        onOpenChange={(isOpen) => {
+          setIsReturnModalOpen(isOpen);
+          if (!isOpen) setReturnTarget(null);
+        }}
+        loan={returnTarget}
+      />
+    </div>
+  );
+}
+
+function AllLoansTab({ loans }: { loans: LoanData[] }) {
+  const [page, setPage] = useState(1);
+
+  const sorted = useMemo(
+    () =>
+      [...loans].sort(
+        (a, b) =>
+          new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime()
+      ),
+    [loans]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  return (
+    <div className="space-y-4">
+      {paginated.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground">
+          No loan history yet.
+        </div>
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Member</TableHead>
+                <TableHead>Book Title</TableHead>
+                <TableHead>Copy</TableHead>
+                <TableHead>Issued</TableHead>
+                <TableHead>Due</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-10">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginated.map((loan) => (
+                <TableRow key={loan.id}>
+                  <TableCell className="font-medium">
+                    {loan.member.user.name}
+                  </TableCell>
+                  <TableCell>{loan.copy.book.title}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {loan.copy.barcode}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {new Date(loan.issuedAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {new Date(loan.dueAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <LoanStatusBadge loan={loan} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">—</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Prev
+              </Button>
+              <span>
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -209,9 +369,7 @@ export function LoansTable({ loans, activeTab, policies }: LoansTableProps) {
       </TabsContent>
 
       <TabsContent value="all">
-        <div className="py-8 text-center text-muted-foreground text-sm">
-          All loans history will be available in the next update.
-        </div>
+        <AllLoansTab loans={loans} />
       </TabsContent>
     </Tabs>
   );
