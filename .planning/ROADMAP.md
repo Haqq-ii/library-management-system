@@ -14,7 +14,7 @@ Five phases build the system from the ground up, each delivering an end-to-end u
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Foundation** - Docker environment, auth, full schema, catalog CRUD, member management
-- [ ] **Phase 2: Circulation Core** - Checkout, return flow, loan history for librarian and member
+- [x] **Phase 2: Circulation Core** - Checkout, return flow, loan history for librarian and member (completed 2026-06-15)
 - [ ] **Phase 3: Fines, Reservations, Renewals & Audit** - Fine lifecycle, hold queue, self-service renewal, audit log
 - [ ] **Phase 4: Notifications & Backups** - Transactional email, scheduled overdue detection, delivery log, DB backup
 - [ ] **Phase 5: Reports & Analytics** - Librarian dashboards, borrowing charts, all four report types
@@ -84,7 +84,7 @@ Plans:
 
 **Wave 2** *(blocked on 02-01)*
 
-- [ ] 02-02-PLAN.md — Return slice: returnBook (close loan, overdue fine, hold advance), ReturnModal, Return action + All Loans tab in LoansTable
+- [x] 02-02-PLAN.md — Return slice: returnBook (close loan, overdue fine, hold advance), ReturnModal, Return action + All Loans tab in LoansTable
 
 **UI hint**: yes
 
@@ -145,7 +145,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/8 | In Progress|  |
-| 2. Circulation Core | 2/3 | In Progress|  |
+| 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
 | 3. Fines, Reservations, Renewals & Audit | 0/TBD | Not started | - |
 | 4. Notifications & Backups | 0/TBD | Not started | - |
 | 5. Reports & Analytics | 0/TBD | Not started | - |
