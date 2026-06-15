@@ -53,8 +53,7 @@ const LIBRARIAN_NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/books", label: "Books", icon: BookOpen },
   { href: "/members", label: "Members", icon: Users },
-  // Loans enabled in Phase 2 — shown but disabled for now (Phase 1 scope)
-  { href: "/loans", label: "Loans", icon: BookMarked, disabled: true },
+  { href: "/loans", label: "Loans", icon: BookMarked },
 ];
 
 const MEMBER_NAV: NavItem[] = [

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 // Lightweight command-palette style component built without cmdk.
 // Used by CheckoutSheet for member/book type-ahead search.
 
-interface CommandProps extends React.HTMLAttributes<HTMLDivElement> {}
+type CommandProps = React.HTMLAttributes<HTMLDivElement>
 
 function Command({ className, ...props }: CommandProps) {
   return (
@@ -23,7 +23,7 @@ function Command({ className, ...props }: CommandProps) {
   )
 }
 
-interface CommandInputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+type CommandInputProps = React.InputHTMLAttributes<HTMLInputElement>
 
 function CommandInput({ className, ...props }: CommandInputProps) {
   return (
@@ -41,7 +41,7 @@ function CommandInput({ className, ...props }: CommandInputProps) {
   )
 }
 
-interface CommandListProps extends React.HTMLAttributes<HTMLDivElement> {}
+type CommandListProps = React.HTMLAttributes<HTMLDivElement>
 
 function CommandList({ className, ...props }: CommandListProps) {
   return (
@@ -53,7 +53,7 @@ function CommandList({ className, ...props }: CommandListProps) {
   )
 }
 
-interface CommandEmptyProps extends React.HTMLAttributes<HTMLDivElement> {}
+type CommandEmptyProps = React.HTMLAttributes<HTMLDivElement>
 
 function CommandEmpty({ className, ...props }: CommandEmptyProps) {
   return (

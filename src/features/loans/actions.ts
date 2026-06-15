@@ -53,7 +53,7 @@ export async function checkoutBook(
 
   // Step 4: Run transaction with SELECT FOR UPDATE SKIP LOCKED
   try {
-    const loan = await prisma.$transaction(async (tx) => {
+    const loan = await prisma.$transaction(async (tx: { $queryRaw: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T>; bookCopy: { update: (args: unknown) => Promise<{ id: string }> }; loan: { create: (args: unknown) => Promise<{ id: string }> } }) => {
       // Lock the first AVAILABLE copy to prevent double-checkout (T-02-03)
       const copies = await tx.$queryRaw<{ id: string }[]>`
         SELECT id FROM "BookCopy"

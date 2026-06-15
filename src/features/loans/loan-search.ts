@@ -48,7 +48,7 @@ export async function searchMembers(
 
     return {
       success: true,
-      data: members.map((m) => ({
+      data: members.map((m: { userId: string; user: { name: string }; memberNumber: string; memberType: string }) => ({
         id: m.userId,
         name: m.user.name,
         memberNumber: m.memberNumber,
@@ -86,12 +86,12 @@ export async function searchBooks(
 
     return {
       success: true,
-      data: books.map((b) => ({
+      data: books.map((b: { id: string; title: string; author: { name: string }; isbn: string; copies: { status: string }[] }) => ({
         id: b.id,
         title: b.title,
         author: b.author.name,
         isbn: b.isbn,
-        availableCount: b.copies.filter((c) => c.status === "AVAILABLE").length,
+        availableCount: b.copies.filter((c: { status: string }) => c.status === "AVAILABLE").length,
       })),
     };
   } catch {
