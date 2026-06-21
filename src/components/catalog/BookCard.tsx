@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { reserveBook } from "@/features/catalog/actions";
 import type { BookCardData } from "@/features/catalog/catalog-search";
 
+// RES-01 (D-07): Reserve button wired to reserveBook — verified Phase 3 Plan 03
 export function BookCard({ book }: { book: BookCardData }) {
   const [isPending, startTransition] = useTransition();
 

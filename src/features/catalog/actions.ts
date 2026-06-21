@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/require-role";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { PICKUP_WINDOW_HOURS } from "@/lib/constants";
 
 export type ActionResult<T> =
   | { success: true; data: T }
@@ -225,18 +226,66 @@ export async function reserveBook(bookId: string): Promise<ActionResult<void>> {
     });
     if (existing) return { success: false, error: "ALREADY_RESERVED" };
 
-    const last = await prisma.reservation.findFirst({
-      where: { bookId, status: "PENDING" },
-      orderBy: { queuePosition: "desc" },
-    });
+    // Wrap reservation creation in a transaction: lazy expiry → hold-advance → create PENDING
+    // This ensures atomicity per T-03-03-03 (D-12 lazy cancellation + D-13 expiry-then-advance)
+    await prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const pickupWindowMs = PICKUP_WINDOW_HOURS * 60 * 60 * 1000;
 
-    await prisma.reservation.create({
-      data: {
-        bookId,
-        memberId: member.id,
-        status: "PENDING",
-        queuePosition: (last?.queuePosition ?? 0) + 1,
-      },
+      // Step 1: Lazy expiry — cancel READY reservations past the 48h pickup window (D-12)
+      const expiredReady = await tx.reservation.findMany({
+        where: {
+          bookId,
+          status: "READY",
+          notifiedAt: { lt: new Date(now.getTime() - pickupWindowMs) },
+        },
+      });
+
+      for (const expired of expiredReady) {
+        await tx.reservation.update({
+          where: { id: expired.id },
+          data: { status: "CANCELLED" },
+        });
+      }
+
+      // Step 2: If any READY reservations expired, advance the next PENDING to READY (D-13)
+      if (expiredReady.length > 0) {
+        const nextPending = await tx.reservation.findFirst({
+          where: { bookId, status: "PENDING" },
+          orderBy: [{ queuePosition: "asc" }, { requestedAt: "asc" }],
+        });
+
+        if (nextPending) {
+          // Find a RESERVED copy that was freed by the expiry
+          const reservedCopy = await tx.bookCopy.findFirst({
+            where: { bookId, status: "RESERVED" },
+          });
+
+          if (reservedCopy) {
+            // Advance next PENDING reservation to READY (hold-advance — D-13)
+            await tx.reservation.update({
+              where: { id: nextPending.id },
+              data: { status: "READY", notifiedAt: now },
+            });
+            // Copy remains RESERVED — now assigned to the newly advanced reservation
+          }
+        }
+      }
+
+      // Step 3: Create the new PENDING reservation with correct queuePosition
+      const last = await tx.reservation.findFirst({
+        where: { bookId, status: "PENDING" },
+        orderBy: { queuePosition: "desc" },
+      });
+
+      await tx.reservation.create({
+        data: {
+          bookId,
+          memberId: member.id,
+          status: "PENDING",
+          queuePosition: (last?.queuePosition ?? 0) + 1,
+        },
+      });
     });
 
     revalidatePath("/catalog");
