@@ -15,6 +15,17 @@ const CheckoutSchema = z.object({
   bookId: z.string().min(1),
 });
 
+// Shared type for AuditLog create data (avoids duplicate type annotations)
+type AuditLogCreateInput = {
+  data: {
+    actorId: string;
+    action: string;
+    entityType: string;
+    entityId: string;
+    details: Record<string, unknown>;
+  };
+};
+
 export async function checkoutBook(
   raw: unknown
 ): Promise<ActionResult<{ id: string }>> {
@@ -67,7 +78,22 @@ export async function checkoutBook(
 
   // Step 4: Run transaction with SELECT FOR UPDATE SKIP LOCKED
   try {
-    const loan = await prisma.$transaction(async (tx: { $queryRaw: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T>; bookCopy: { update: (args: unknown) => Promise<{ id: string }>; findUnique: (args: unknown) => Promise<{ id: string; barcode: string } | null> }; book: { findUnique: (args: unknown) => Promise<{ id: string; title: string } | null> }; loan: { create: (args: unknown) => Promise<{ id: string }> }; auditLog: { create: (args: unknown) => Promise<{ id: string }> } }) => {
+    const loan = await prisma.$transaction(async (tx: {
+      $queryRaw: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T>;
+      bookCopy: {
+        update: (args: unknown) => Promise<{ id: string }>;
+        findUnique: (args: unknown) => Promise<{ id: string; barcode: string } | null>;
+      };
+      book: {
+        findUnique: (args: unknown) => Promise<{ id: string; title: string } | null>;
+      };
+      loan: {
+        create: (args: unknown) => Promise<{ id: string }>;
+      };
+      auditLog: {
+        create: (args: AuditLogCreateInput) => Promise<{ id: string }>;
+      };
+    }) => {
       // Lock the first AVAILABLE copy to prevent double-checkout (T-02-03)
       const copies = await tx.$queryRaw<{ id: string }[]>`
         SELECT id FROM "BookCopy"
@@ -129,7 +155,7 @@ export async function checkoutBook(
             dueAt: dueAt.toISOString(),
           },
         },
-      } as unknown as Parameters<typeof tx.auditLog.create>[0]);
+      });
 
       return newLoan;
     });
@@ -199,10 +225,10 @@ export async function returnBook(
           update: (args: unknown) => Promise<{ id: string }>;
         };
         auditLog: {
-          create: (args: unknown) => Promise<{ id: string }>;
+          create: (args: AuditLogCreateInput) => Promise<{ id: string }>;
         };
       }) => {
-        // Load the loan with copy (including bookId and barcode) and member info
+        // Load the loan with copy (including barcode) and member info
         const loan = await tx.loan.findUnique({
           where: { id: loanId },
           include: {
@@ -271,7 +297,7 @@ export async function returnBook(
               returnedAt: now.toISOString(),
             },
           },
-        } as unknown as Parameters<typeof tx.auditLog.create>[0]);
+        });
 
         // Lazy expiry (RES-02 / D-12): cancel READY reservations past pickup window
         // before advancing the hold queue (D-13: expiry-then-advance pattern)
