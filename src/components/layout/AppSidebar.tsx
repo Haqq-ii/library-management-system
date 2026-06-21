@@ -12,6 +12,8 @@ import {
   User,
   Menu,
   LogOut,
+  Receipt,
+  ClipboardList,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
@@ -54,6 +56,8 @@ const LIBRARIAN_NAV: NavItem[] = [
   { href: "/books", label: "Books", icon: BookOpen },
   { href: "/members", label: "Members", icon: Users },
   { href: "/loans", label: "Loans", icon: BookMarked },
+  { href: "/fines", label: "Fines", icon: Receipt },
+  { href: "/audit", label: "Audit Log", icon: ClipboardList },
 ];
 
 const MEMBER_NAV: NavItem[] = [

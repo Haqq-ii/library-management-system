@@ -46,6 +46,7 @@ export function CheckoutSheet({
   const [showBookResults, setShowBookResults] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fineBlockError, setFineBlockError] = useState<string | null>(null);
   const [, startMemberTransition] = useTransition();
   const [, startBookTransition] = useTransition();
 
@@ -60,6 +61,7 @@ export function CheckoutSheet({
       setBookResults([]);
       setSelectedBook(null);
       setShowBookResults(false);
+      setFineBlockError(null);
     }
     onOpenChange(nextOpen);
   }
@@ -79,6 +81,7 @@ export function CheckoutSheet({
     setSelectedMember(m);
     setMemberQuery(`${m.name} (${m.memberNumber})`);
     setShowMemberResults(false);
+    setFineBlockError(null);
   }
 
   function handleBookQueryChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -121,6 +124,11 @@ export function CheckoutSheet({
       if (result.success) {
         toast.success("Book checked out successfully.");
         handleOpenChange(false);
+      } else if (result.error.startsWith("FINE_BLOCK:")) {
+        const amount = result.error.split(":")[1];
+        setFineBlockError(
+          `This member has $${amount} in outstanding fines. Clear fines before checkout.`
+        );
       } else if (result.error === "NO_COPIES") {
         toast.error("No copies available for this title.");
       } else {
@@ -167,6 +175,9 @@ export function CheckoutSheet({
                 </ul>
               )}
             </div>
+          {fineBlockError && (
+            <p className="text-sm text-destructive mt-2">{fineBlockError}</p>
+          )}
           </div>
 
           {/* Book search */}
