@@ -116,7 +116,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 03-04-PLAN.md � Loan action extensions: FINE_BLOCK in checkoutBook, lazy expiry in returnBook, renewLoan
+- [x] 03-04-PLAN.md � Loan action extensions: FINE_BLOCK in checkoutBook, lazy expiry in returnBook, renewLoan
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -166,6 +166,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/8 | In Progress|  |
 | 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
-| 3. Fines, Reservations, Renewals & Audit | 3/6 | In Progress|  |
+| 3. Fines, Reservations, Renewals & Audit | 4/6 | In Progress|  |
 | 4. Notifications & Backups | 0/TBD | Not started | - |
 | 5. Reports & Analytics | 0/TBD | Not started | - |
