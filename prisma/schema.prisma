@@ -28,6 +28,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   member        Member?
+  auditLogs     AuditLog[]
 }
 
 model Session {
@@ -186,8 +187,9 @@ model Fine {
   status    FineStatus @default(UNPAID)
   createdAt DateTime   @default(now()) @db.Timestamptz(3)
   paidAt    DateTime?  @db.Timestamptz(3)
-  waivedAt  DateTime?  @db.Timestamptz(3)
-  waivedBy  String?
+  waivedAt     DateTime?  @db.Timestamptz(3)
+  waivedBy     String?
+  waivedReason String?
 }
 
 enum ReservationStatus {
@@ -195,6 +197,18 @@ enum ReservationStatus {
   READY
   FULFILLED
   CANCELLED
+}
+
+enum AuditAction {
+  CHECKOUT
+  RETURN
+  FINE_WAIVED
+  BOOK_ADDED
+  BOOK_EDITED
+  BOOK_DELETED
+  MEMBER_ADDED
+  MEMBER_EDITED
+  MEMBER_DEACTIVATED
 }
 
 model Reservation {
@@ -218,4 +232,16 @@ model NotificationLog {
   channel  String   @default("EMAIL")
   success  Boolean
   metadata Json?
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  actorId    String
+  action     AuditAction
+  entityType String
+  entityId   String
+  details    Json?
+  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
+
+  actor      User        @relation(fields: [actorId], references: [id])
 }
