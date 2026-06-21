@@ -53,7 +53,7 @@ export async function checkoutBook(
 
   // Step 4: Run transaction with SELECT FOR UPDATE SKIP LOCKED
   try {
-    const loan = await prisma.$transaction(async (tx: { $queryRaw: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T>; bookCopy: { update: (args: unknown) => Promise<{ id: string }> }; loan: { create: (args: unknown) => Promise<{ id: string }> } }) => {
+    const loan = await prisma.$transaction(async (tx) => {
       // Lock the first AVAILABLE copy to prevent double-checkout (T-02-03)
       const copies = await tx.$queryRaw<{ id: string }[]>`
         SELECT id FROM "BookCopy"
@@ -120,40 +120,7 @@ export async function returnBook(
   // Step 2: Run everything inside a single transaction (T-02-08 — atomic return)
   try {
     const data = await prisma.$transaction(
-      async (tx: {
-        loan: {
-          findUnique: (args: unknown) => Promise<{
-            id: string;
-            copyId: string;
-            memberId: string;
-            dueAt: Date;
-            returnedAt: Date | null;
-            copy: { id: string; bookId: string; book: { id: string; title: string } };
-            member: { id: string; memberType: string; user: { id: string; name: string } };
-          } | null>;
-          update: (args: unknown) => Promise<{ id: string }>;
-        };
-        fine: {
-          create: (args: unknown) => Promise<{ id: string }>;
-        };
-        bookCopy: {
-          update: (args: unknown) => Promise<{ id: string }>;
-        };
-        loanPolicy: {
-          findUnique: (args: unknown) => Promise<{ fineDailyRate: number } | null>;
-        };
-        reservation: {
-          findFirst: (args: unknown) => Promise<{
-            id: string;
-            bookId: string;
-            memberId: string;
-            status: string;
-            queuePosition: number;
-            member: { id: string; user: { id: string; name: string } };
-          } | null>;
-          update: (args: unknown) => Promise<{ id: string }>;
-        };
-      }) => {
+      async (tx) => {
         // Load the loan with copy (including bookId) and member info
         const loan = await tx.loan.findUnique({
           where: { id: loanId },
@@ -161,7 +128,7 @@ export async function returnBook(
             copy: { include: { book: true } },
             member: { include: { user: true } },
           },
-        } as unknown as Parameters<typeof tx.loan.findUnique>[0]);
+        });
 
         if (!loan) {
           throw new Error("NOT_FOUND");
@@ -183,7 +150,7 @@ export async function returnBook(
         if (overdueDays > 0) {
           const policy = await tx.loanPolicy.findUnique({
             where: { memberType: loan.member.memberType },
-          } as unknown as Parameters<typeof tx.loanPolicy.findUnique>[0]);
+          });
 
           if (policy) {
             const fineAmount = Number(policy.fineDailyRate) * overdueDays;
@@ -195,7 +162,7 @@ export async function returnBook(
                 reason: "OVERDUE",
                 status: "UNPAID",
               },
-            } as unknown as Parameters<typeof tx.fine.create>[0]);
+            });
           }
           // Fallback: if no policy found, skip fine but still close the loan
           // (can happen if policy was deleted after the loan was issued)
@@ -205,26 +172,26 @@ export async function returnBook(
         await tx.loan.update({
           where: { id: loanId },
           data: { returnedAt: now, status: "RETURNED" },
-        } as unknown as Parameters<typeof tx.loan.update>[0]);
+        });
 
         // Hold check (D-09): find earliest PENDING reservation for this book title
         const pendingReservation = await tx.reservation.findFirst({
           where: { bookId, status: "PENDING" },
           orderBy: [{ queuePosition: "asc" }, { requestedAt: "asc" }],
           include: { member: { include: { user: true } } },
-        } as unknown as Parameters<typeof tx.reservation.findFirst>[0]);
+        });
 
         if (pendingReservation) {
           // Set copy to RESERVED and advance the reservation to READY
           await tx.bookCopy.update({
             where: { id: loan.copyId },
             data: { status: "RESERVED" },
-          } as unknown as Parameters<typeof tx.bookCopy.update>[0]);
+          });
 
           await tx.reservation.update({
             where: { id: pendingReservation.id },
             data: { status: "READY", notifiedAt: now },
-          } as unknown as Parameters<typeof tx.reservation.update>[0]);
+          });
 
           return {
             holdTriggered: true,
@@ -235,7 +202,7 @@ export async function returnBook(
           await tx.bookCopy.update({
             where: { id: loan.copyId },
             data: { status: "AVAILABLE" },
-          } as unknown as Parameters<typeof tx.bookCopy.update>[0]);
+          });
 
           return { holdTriggered: false };
         }

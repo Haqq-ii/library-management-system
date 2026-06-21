@@ -48,7 +48,7 @@ export async function searchMembers(
 
     return {
       success: true,
-      data: members.map((m: { userId: string; user: { name: string }; memberNumber: string; memberType: string }) => ({
+      data: members.map((m) => ({
         id: m.id,
         name: m.user.name,
         memberNumber: m.memberNumber,
