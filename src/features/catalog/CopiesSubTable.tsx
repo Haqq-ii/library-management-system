@@ -109,7 +109,7 @@ export function CopiesSubTable({ bookId, copies, isLibrarian }: CopiesSubTablePr
                   <BookStatusBadge status={copy.status as Parameters<typeof BookStatusBadge>[0]["status"]} />
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {new Date(copy.addedAt).toLocaleDateString()}
+                  {new Date(copy.addedAt).toLocaleDateString("en-US", { timeZone: "UTC" })}
                 </TableCell>
                 {isLibrarian && (
                   <TableCell className="space-x-1 text-right">

@@ -143,7 +143,7 @@ export function MyReservationsClient({
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(reservation.requestedAt).toLocaleDateString(
                       "en-US",
-                      { month: "short", day: "numeric", year: "numeric" }
+                      { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }
                     )}
                   </TableCell>
                   <TableCell>
@@ -157,6 +157,7 @@ export function MyReservationsClient({
                       >
                         Pick up by{" "}
                         {pickupDeadline.toLocaleDateString("en-US", {
+                          timeZone: "UTC",
                           month: "short",
                           day: "numeric",
                           year: "numeric",

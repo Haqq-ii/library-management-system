@@ -193,7 +193,7 @@ function ActiveLoansTab({
                     <TableCell
                       className={isOverdue ? "text-red-600 font-medium" : "text-sm"}
                     >
-                      {dueDate.toLocaleDateString()}
+                      {dueDate.toLocaleDateString("en-US", { timeZone: "UTC" })}
                       {isOverdue && daysOverdue > 0 && (
                         <span className="ml-1 text-xs">({daysOverdue}d overdue)</span>
                       )}
@@ -307,10 +307,10 @@ function AllLoansTab({ loans }: { loans: LoanData[] }) {
                     {loan.copy.barcode}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {new Date(loan.issuedAt).toLocaleDateString()}
+                    {new Date(loan.issuedAt).toLocaleDateString("en-US", { timeZone: "UTC" })}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {new Date(loan.dueAt).toLocaleDateString()}
+                    {new Date(loan.dueAt).toLocaleDateString("en-US", { timeZone: "UTC" })}
                   </TableCell>
                   <TableCell>
                     <LoanStatusBadge loan={loan} />

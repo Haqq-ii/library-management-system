@@ -212,6 +212,7 @@ export function AuditTable({ entries: initialEntries, total: initialTotal, page:
                 <TableRow key={entry.id}>
                   <TableCell className="text-sm text-muted-foreground w-40">
                     {new Date(entry.createdAt).toLocaleString("en-US", {
+                      timeZone: "UTC",
                       month: "short",
                       day: "numeric",
                       year: "numeric",

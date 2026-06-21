@@ -103,10 +103,10 @@ export default async function MyLoansPage() {
                   </TableCell>
                   <TableCell>{loan.copy.book.author.name}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(loan.issuedAt).toLocaleDateString()}
+                    {new Date(loan.issuedAt).toLocaleDateString("en-US", { timeZone: "UTC" })}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {new Date(loan.dueAt).toLocaleDateString()}
+                    {new Date(loan.dueAt).toLocaleDateString("en-US", { timeZone: "UTC" })}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">Returned</Badge>

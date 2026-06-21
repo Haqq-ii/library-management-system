@@ -110,7 +110,7 @@ export function CheckoutSheet({
     if (!policy) return null;
     const nowMs = new Date().getTime();
     const dueDate = new Date(nowMs + policy.loanDays * 24 * 60 * 60 * 1000);
-    return dueDate.toLocaleDateString();
+    return dueDate.toLocaleDateString("en-US", { timeZone: "UTC" });
   }, [selectedMember, policies]);
 
   async function handleConfirm() {

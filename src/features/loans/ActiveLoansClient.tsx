@@ -42,7 +42,7 @@ export function ActiveLoansClient({ loans }: ActiveLoansClientProps) {
       if (result.success) {
         const dateStr = new Date(result.data.newDueAt).toLocaleDateString(
           "en-US",
-          { month: "short", day: "numeric", year: "numeric" }
+          { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }
         );
         toast.success(`Loan renewed. New due date: ${dateStr}.`);
       } else if (result.error.startsWith("FINE_BLOCK:")) {
@@ -94,12 +94,12 @@ export function ActiveLoansClient({ loans }: ActiveLoansClientProps) {
                 </TableCell>
                 <TableCell>{loan.copy.book.author.name}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {new Date(loan.issuedAt).toLocaleDateString()}
+                  {new Date(loan.issuedAt).toLocaleDateString("en-US", { timeZone: "UTC" })}
                 </TableCell>
                 <TableCell
                   className={overdue ? "text-red-600 font-medium" : "text-sm"}
                 >
-                  {new Date(loan.dueAt).toLocaleDateString()}
+                  {new Date(loan.dueAt).toLocaleDateString("en-US", { timeZone: "UTC" })}
                 </TableCell>
                 <TableCell>
                   {overdue ? (

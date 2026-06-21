@@ -152,6 +152,7 @@ function formatAmount(amount: number | { toNumber: () => number }): string {
 
 function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("en-US", {
+    timeZone: "UTC",
     month: "short",
     day: "numeric",
     year: "numeric",
