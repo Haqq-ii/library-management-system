@@ -32,7 +32,7 @@ created: 2026-06-21
 
 ## Spacing Scale
 
-8-point scale. All values are multiples of 4. No exceptions for this phase.
+8-point scale. All values are multiples of 4. No new exceptions for this phase.
 
 | Token | Value | Usage |
 |-------|-------|-------|
@@ -55,16 +55,16 @@ Established by the existing codebase — do not introduce new sizes or weights.
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Page heading | 24px (text-2xl) | 600 (font-semibold) | 1.2 | `<h1>` on all new pages (Fines, My Reservations, Audit) |
-| Section heading | 20px (text-xl) / 18px (text-lg) | 600 (font-semibold) | 1.2 | `<h2>` within pages (matches my-loans pattern: `text-lg font-semibold`) |
+| Section heading | 18px (text-lg) | 600 (font-semibold) | 1.2 | `<h2>` within pages (matches my-loans pattern: `text-lg font-semibold`) |
 | Body / table cell | 16px (text-base) | 400 (font-normal) | 1.5 | Table cells, dialog description text |
 | Small / meta | 14px (text-sm) | 400 (font-normal) | 1.5 | Muted metadata (dates, secondary info, pagination count), `text-sm text-muted-foreground` |
 
 **Established patterns from codebase:**
 - Page title: `<h1 className="text-2xl font-semibold">`
 - Section count suffix: `<span className="text-sm text-muted-foreground">({count})</span>`
-- Table cell primary content: `className="font-medium"` (weight 500 via Tailwind `font-medium`)
+- Table cell primary content: `className="font-semibold"` (weight 600 — consistent with heading weight; `font-medium` removed to stay within 2-weight contract)
 - Muted secondary text: `className="text-sm text-muted-foreground"`
-- Monospace barcodes/IDs: `className="font-mono text-xs text-muted-foreground"`
+- Monospace barcodes/IDs: `className="font-mono text-sm text-muted-foreground"`
 
 ---
 
@@ -101,7 +101,7 @@ The project uses the shadcn/ui neutral OKLCH theme. All color references below u
 | Audit action — BOOK_* | `bg-purple-100 text-purple-800` | Catalog mutation badges in audit log |
 | Audit action — MEMBER_* | `bg-indigo-100 text-indigo-800` | Member mutation badges in audit log |
 | Overdue row highlight | `bg-red-50` | Table row background for overdue loans (established in LoansTable.tsx) |
-| Expired READY pickup row | `text-red-600 font-medium` | Expires column text when pickup window has passed |
+| Expired READY pickup row | `text-red-600 font-semibold` | Expires column text when pickup window has passed |
 
 ---
 
@@ -142,7 +142,7 @@ All components below are already installed. No new shadcn components need to be 
 
 | Column | Width | Notes |
 |--------|-------|-------|
-| Member | auto | `font-medium` |
+| Member | auto | `font-semibold` |
 | Book Title | auto | from associated loan |
 | Amount | 80px | `$X.XX` format |
 | Status | 100px | Badge: UNPAID / PAID / WAIVED (semantic colors above) |
@@ -191,11 +191,11 @@ DialogFooter:      <Button variant="outline">Cancel</Button>
 
 | Column | Width | Notes |
 |--------|-------|-------|
-| Book Title | auto | `font-medium` |
+| Book Title | auto | `font-semibold` |
 | Status | 120px | Badge: PENDING / READY / FULFILLED / CANCELLED |
 | Queue Position | 100px | "Position X in queue" — shown on PENDING rows only; `—` otherwise |
 | Date Requested | 120px | `text-sm text-muted-foreground`, formatted as `Jun 21, 2026` |
-| Expires | 120px | READY rows: "Pick up by Jun 23" in `text-green-800`; expired READY (past 48h): "Pick up by Jun 23" in `text-red-600 font-medium`; all other statuses: `—` |
+| Expires | 120px | READY rows: "Pick up by Jun 23" in `text-green-800`; expired READY (past 48h): "Pick up by Jun 23" in `text-red-600 font-semibold`; all other statuses: `—` |
 | Actions | 80px | Cancel button on PENDING rows only; `—` otherwise |
 
 **Cancel button:** `<Button size="sm" variant="outline">Cancel</Button>`
@@ -273,7 +273,7 @@ Filter controls:
 | Column | Width | Notes |
 |--------|-------|-------|
 | Timestamp | 160px | `text-sm text-muted-foreground`, formatted as `Jun 21, 2026 14:32` (local time) |
-| Librarian | 140px | Librarian's display name, `font-medium` |
+| Librarian | 140px | Librarian's display name, `font-semibold` |
 | Action | 140px | Color-coded badge per `AuditAction` (semantic colors table above) |
 | Description | auto | Human-readable string from `details.description` JSON field |
 
