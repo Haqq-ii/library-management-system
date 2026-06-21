@@ -107,21 +107,21 @@ Plans:
 
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — Schema migration: AuditLog model, AuditAction enum, Fine.waivedReason field
+- [x] 03-01-PLAN.md ï¿½ Schema migration: AuditLog model, AuditAction enum, Fine.waivedReason field
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03-02-PLAN.md — Fine management slice: waiveFine action, FinesTable, /fines page
-- [ ] 03-03-PLAN.md — Reservations slice: cancelReservation action, lazy expiry in reserveBook, /my-reservations page
+- [ ] 03-02-PLAN.md ï¿½ Fine management slice: waiveFine action, FinesTable, /fines page
+- [ ] 03-03-PLAN.md ï¿½ Reservations slice: cancelReservation action, lazy expiry in reserveBook, /my-reservations page
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 03-04-PLAN.md — Loan action extensions: FINE_BLOCK in checkoutBook, lazy expiry in returnBook, renewLoan
+- [ ] 03-04-PLAN.md ï¿½ Loan action extensions: FINE_BLOCK in checkoutBook, lazy expiry in returnBook, renewLoan
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 03-05-PLAN.md — Audit log slice: retrofit catalog/member/loan actions with AuditLog writes, AuditTable, /audit page
-- [ ] 03-06-PLAN.md — UI wiring: ActiveLoansClient Renew button, CheckoutSheet FINE_BLOCK error, AppSidebar nav additions
+- [ ] 03-05-PLAN.md ï¿½ Audit log slice: retrofit catalog/member/loan actions with AuditLog writes, AuditTable, /audit page
+- [ ] 03-06-PLAN.md ï¿½ UI wiring: ActiveLoansClient Renew button, CheckoutSheet FINE_BLOCK error, AppSidebar nav additions
 
 **UI hint**: yes
 
@@ -166,6 +166,6 @@ Phases execute in numeric order: 1 â†’ 2 â†’ 3 â†’ 4 â†’ 5
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/8 | In Progress|  |
 | 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
-| 3. Fines, Reservations, Renewals & Audit | 0/TBD | Not started | - |
+| 3. Fines, Reservations, Renewals & Audit | 1/6 | In Progress|  |
 | 4. Notifications & Backups | 0/TBD | Not started | - |
 | 5. Reports & Analytics | 0/TBD | Not started | - |
