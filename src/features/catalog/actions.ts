@@ -289,6 +289,7 @@ export async function reserveBook(bookId: string): Promise<ActionResult<void>> {
     });
 
     revalidatePath("/catalog");
+    revalidatePath("/my-reservations");
     return { success: true, data: undefined };
   } catch (err) {
     console.error("[reserveBook]", err);

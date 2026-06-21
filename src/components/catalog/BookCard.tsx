@@ -26,6 +26,10 @@ export function BookCard({ book }: { book: BookCardData }) {
         toast.success("You're on the waitlist for this book.");
       } else if (result.error === "ALREADY_RESERVED") {
         toast.info("You already have a reservation for this book.");
+      } else if (result.error === "FORBIDDEN") {
+        toast.error("Only members can place reservations.");
+      } else if (result.error === "NO_MEMBER") {
+        toast.error("Your account doesn't have a member profile yet.");
       } else {
         toast.error("Couldn't place reservation. Please try again.");
       }

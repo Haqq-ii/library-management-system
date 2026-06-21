@@ -59,13 +59,7 @@ const LIBRARIAN_NAV: NavItem[] = [
 const MEMBER_NAV: NavItem[] = [
   { href: "/catalog", label: "Search Catalog", icon: Search },
   { href: "/my-loans", label: "My Loans", icon: BookMarked },
-  // Reservations enabled in Phase 3
-  {
-    href: "/my-reservations",
-    label: "My Reservations",
-    icon: BookOpen,
-    disabled: true,
-  },
+  { href: "/my-reservations", label: "My Reservations", icon: BookOpen },
   { href: "/my-profile", label: "My Profile", icon: User },
 ];
 
