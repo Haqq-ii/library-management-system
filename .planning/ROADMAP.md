@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Foundation** - Docker environment, auth, full schema, catalog CRUD, member management
 - [x] **Phase 2: Circulation Core** - Checkout, return flow, loan history for librarian and member (completed 2026-06-15)
-- [ ] **Phase 3: Fines, Reservations, Renewals & Audit** - Fine lifecycle, hold queue, self-service renewal, audit log
+- [x] **Phase 3: Fines, Reservations, Renewals & Audit** - Fine lifecycle, hold queue, self-service renewal, audit log (completed 2026-06-21)
 - [ ] **Phase 4: Notifications & Backups** - Transactional email, scheduled overdue detection, delivery log, DB backup
 - [ ] **Phase 5: Reports & Analytics** - Librarian dashboards, borrowing charts, all four report types
 
@@ -120,8 +120,8 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 03-05-PLAN.md � Audit log slice: retrofit catalog/member/loan actions with AuditLog writes, AuditTable, /audit page
-- [ ] 03-06-PLAN.md � UI wiring: ActiveLoansClient Renew button, CheckoutSheet FINE_BLOCK error, AppSidebar nav additions
+- [x] 03-05-PLAN.md � Audit log slice: retrofit catalog/member/loan actions with AuditLog writes, AuditTable, /audit page
+- [x] 03-06-PLAN.md � UI wiring: ActiveLoansClient Renew button, CheckoutSheet FINE_BLOCK error, AppSidebar nav additions
 
 **UI hint**: yes
 
@@ -166,6 +166,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/8 | In Progress|  |
 | 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
-| 3. Fines, Reservations, Renewals & Audit | 4/6 | In Progress|  |
+| 3. Fines, Reservations, Renewals & Audit | 6/6 | Complete   | 2026-06-21 |
 | 4. Notifications & Backups | 0/TBD | Not started | - |
 | 5. Reports & Analytics | 0/TBD | Not started | - |
