@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/require-role";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { PICKUP_WINDOW_HOURS } from "@/lib/constants";
 
 export type ActionResult<T> =
   | { success: true; data: T }
@@ -17,9 +18,10 @@ const CheckoutSchema = z.object({
 export async function checkoutBook(
   raw: unknown
 ): Promise<ActionResult<{ id: string }>> {
-  // Step 1: Auth guard (Pattern A — mutations)
+  // Step 1: Auth guard — capture session for AuditLog actorId (AUD-01)
+  let session;
   try {
-    await requireRole("LIBRARIAN");
+    session = await requireRole("LIBRARIAN");
   } catch (err) {
     return {
       success: false,
@@ -37,6 +39,7 @@ export async function checkoutBook(
   // Step 3: Look up member and loan policy
   const member = await prisma.member.findUnique({
     where: { id: memberId },
+    include: { user: true },
   });
   if (!member) {
     return { success: false, error: "INVALID_INPUT" };
@@ -49,11 +52,22 @@ export async function checkoutBook(
     return { success: false, error: "NO_POLICY" };
   }
 
+  // FINE_BLOCK check (FINE-03): block checkout if member has unpaid fines >= threshold
+  const unpaidFines = await prisma.fine.aggregate({
+    where: { memberId, status: "UNPAID" },
+    _sum: { amount: true },
+  });
+  const unpaidTotal = Number(unpaidFines._sum.amount ?? 0);
+  if (unpaidTotal >= Number(policy.maxUnpaidFineAmount)) {
+    return { success: false, error: `FINE_BLOCK:${unpaidTotal.toFixed(2)}` };
+  }
+
   const loanDays = policy.loanDays;
+  const memberName = member.user.name;
 
   // Step 4: Run transaction with SELECT FOR UPDATE SKIP LOCKED
   try {
-    const loan = await prisma.$transaction(async (tx: { $queryRaw: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T>; bookCopy: { update: (args: unknown) => Promise<{ id: string }> }; loan: { create: (args: unknown) => Promise<{ id: string }> } }) => {
+    const loan = await prisma.$transaction(async (tx: { $queryRaw: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T>; bookCopy: { update: (args: unknown) => Promise<{ id: string }>; findUnique: (args: unknown) => Promise<{ id: string; barcode: string } | null> }; book: { findUnique: (args: unknown) => Promise<{ id: string; title: string } | null> }; loan: { create: (args: unknown) => Promise<{ id: string }> }; auditLog: { create: (args: unknown) => Promise<{ id: string }> } }) => {
       // Lock the first AVAILABLE copy to prevent double-checkout (T-02-03)
       const copies = await tx.$queryRaw<{ id: string }[]>`
         SELECT id FROM "BookCopy"
@@ -69,11 +83,22 @@ export async function checkoutBook(
 
       const copyId = copies[0].id;
 
+      // Look up copy barcode and book title inside transaction for audit details
+      const copy = await tx.bookCopy.findUnique({
+        where: { id: copyId },
+        select: { barcode: true },
+      } as unknown as Parameters<typeof tx.bookCopy.findUnique>[0]);
+
+      const book = await tx.book.findUnique({
+        where: { id: bookId },
+        select: { title: true },
+      } as unknown as Parameters<typeof tx.book.findUnique>[0]);
+
       // Mark the copy as checked out
       await tx.bookCopy.update({
         where: { id: copyId },
         data: { status: "CHECKED_OUT" },
-      });
+      } as unknown as Parameters<typeof tx.bookCopy.update>[0]);
 
       // Compute due date in UTC epoch math (PITFALLS section 4 — no local timezone)
       const dueAt = new Date(Date.now() + loanDays * 24 * 60 * 60 * 1000);
@@ -86,7 +111,25 @@ export async function checkoutBook(
           dueAt,
           status: "ACTIVE",
         },
-      });
+      } as unknown as Parameters<typeof tx.loan.create>[0]);
+
+      // AuditLog write inside transaction (T-03-05-05, AUD-01)
+      await tx.auditLog.create({
+        data: {
+          actorId: session.user.id,
+          action: "CHECKOUT",
+          entityType: "Loan",
+          entityId: newLoan.id,
+          details: {
+            description: `Checked out '${book?.title ?? bookId}' (copy ${copy?.barcode ?? copyId}) to ${memberName}, due ${dueAt.toISOString()}`,
+            memberId,
+            memberName,
+            bookTitle: book?.title ?? bookId,
+            copyBarcode: copy?.barcode ?? copyId,
+            dueAt: dueAt.toISOString(),
+          },
+        },
+      } as unknown as Parameters<typeof tx.auditLog.create>[0]);
 
       return newLoan;
     });
@@ -107,9 +150,10 @@ export async function checkoutBook(
 export async function returnBook(
   loanId: string
 ): Promise<ActionResult<{ holdTriggered: boolean; holdMemberName?: string }>> {
-  // Step 1: Auth guard (T-02-06 — requireRole first, middleware not trusted CVE-2025-29927)
+  // Step 1: Auth guard — capture session for AuditLog actorId (AUD-01)
+  let session;
   try {
-    await requireRole("LIBRARIAN");
+    session = await requireRole("LIBRARIAN");
   } catch (err) {
     return {
       success: false,
@@ -128,7 +172,7 @@ export async function returnBook(
             memberId: string;
             dueAt: Date;
             returnedAt: Date | null;
-            copy: { id: string; bookId: string; book: { id: string; title: string } };
+            copy: { id: string; bookId: string; barcode: string; book: { id: string; title: string } };
             member: { id: string; memberType: string; user: { id: string; name: string } };
           } | null>;
           update: (args: unknown) => Promise<{ id: string }>;
@@ -143,6 +187,7 @@ export async function returnBook(
           findUnique: (args: unknown) => Promise<{ fineDailyRate: number } | null>;
         };
         reservation: {
+          findMany: (args: unknown) => Promise<{ id: string; bookId: string; memberId: string; status: string; notifiedAt: Date | null }[]>;
           findFirst: (args: unknown) => Promise<{
             id: string;
             bookId: string;
@@ -153,8 +198,11 @@ export async function returnBook(
           } | null>;
           update: (args: unknown) => Promise<{ id: string }>;
         };
+        auditLog: {
+          create: (args: unknown) => Promise<{ id: string }>;
+        };
       }) => {
-        // Load the loan with copy (including bookId) and member info
+        // Load the loan with copy (including bookId and barcode) and member info
         const loan = await tx.loan.findUnique({
           where: { id: loanId },
           include: {
@@ -207,6 +255,41 @@ export async function returnBook(
           data: { returnedAt: now, status: "RETURNED" },
         } as unknown as Parameters<typeof tx.loan.update>[0]);
 
+        // AuditLog write for RETURN (AUD-01, T-03-05-05)
+        await tx.auditLog.create({
+          data: {
+            actorId: session.user.id,
+            action: "RETURN",
+            entityType: "Loan",
+            entityId: loanId,
+            details: {
+              description: `Returned '${loan.copy.book.title}' (copy ${loan.copy.barcode}) from ${loan.member.user.name}`,
+              memberId: loan.memberId,
+              memberName: loan.member.user.name,
+              bookTitle: loan.copy.book.title,
+              copyBarcode: loan.copy.barcode,
+              returnedAt: now.toISOString(),
+            },
+          },
+        } as unknown as Parameters<typeof tx.auditLog.create>[0]);
+
+        // Lazy expiry (RES-02 / D-12): cancel READY reservations past pickup window
+        // before advancing the hold queue (D-13: expiry-then-advance pattern)
+        const PICKUP_WINDOW_MS = PICKUP_WINDOW_HOURS * 60 * 60 * 1000;
+        const expiredReady = await tx.reservation.findMany({
+          where: {
+            bookId,
+            status: "READY",
+            notifiedAt: { lt: new Date(now.getTime() - PICKUP_WINDOW_MS) },
+          },
+        } as unknown as Parameters<typeof tx.reservation.findMany>[0]);
+        for (const expired of expiredReady) {
+          await tx.reservation.update({
+            where: { id: expired.id },
+            data: { status: "CANCELLED" },
+          } as unknown as Parameters<typeof tx.reservation.update>[0]);
+        }
+
         // Hold check (D-09): find earliest PENDING reservation for this book title
         const pendingReservation = await tx.reservation.findFirst({
           where: { bookId, status: "PENDING" },
@@ -254,6 +337,100 @@ export async function returnBook(
       return { success: false, error: "NOT_FOUND" };
     }
     console.error("[returnBook]", err);
+    return { success: false, error: "DB_ERROR" };
+  }
+}
+
+export async function renewLoan(
+  loanId: string
+): Promise<ActionResult<{ newDueAt: Date }>> {
+  // Step 1: Auth — member only; capture session for ownership check (T-03-04-01)
+  let session;
+  try {
+    session = await requireRole("MEMBER");
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "FORBIDDEN",
+    };
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const loan = await tx.loan.findUnique({
+        where: { id: loanId },
+        include: {
+          member: { include: { user: true } },
+          copy: { include: { book: true } },
+        },
+      });
+
+      if (!loan) throw new Error("NOT_FOUND");
+
+      // Ownership check (T-03-04-02 IDOR): member can only renew their own loan
+      if (loan.member.userId !== session.user.id) throw new Error("FORBIDDEN");
+
+      const policy = await tx.loanPolicy.findUnique({
+        where: { memberType: loan.member.memberType },
+      });
+      if (!policy) throw new Error("NO_POLICY");
+
+      // Block 1: FINE_BLOCK — checked first (D-15, T-03-04-03/04)
+      const unpaidFines = await tx.fine.aggregate({
+        where: { memberId: loan.memberId, status: "UNPAID" },
+        _sum: { amount: true },
+      });
+      const unpaidTotal = Number(unpaidFines._sum.amount ?? 0);
+      if (unpaidTotal >= Number(policy.maxUnpaidFineAmount)) {
+        throw new Error(`FINE_BLOCK:${unpaidTotal.toFixed(2)}`);
+      }
+
+      // Block 2: MAX_RENEWALS — checked second (D-15)
+      if (loan.renewCount >= policy.maxRenewals) {
+        throw new Error(`MAX_RENEWALS:${policy.maxRenewals}`);
+      }
+
+      // Block 3: RESERVATION_BLOCK — checked third (D-15)
+      const activeReservation = await tx.reservation.findFirst({
+        where: {
+          bookId: loan.copy.bookId,
+          status: { in: ["PENDING", "READY"] },
+        },
+      });
+      if (activeReservation) {
+        throw new Error("RESERVATION_BLOCK");
+      }
+
+      // Compute new due date: current dueAt + loanDays using UTC epoch math (D-14, T-03-04-05)
+      const currentDue = new Date(loan.dueAt);
+      const newDueAt = new Date(
+        currentDue.getTime() + policy.loanDays * 24 * 60 * 60 * 1000
+      );
+
+      await tx.loan.update({
+        where: { id: loanId },
+        data: { dueAt: newDueAt, renewCount: { increment: 1 } },
+      });
+
+      return { newDueAt };
+    });
+
+    revalidatePath("/my-loans");
+    return { success: true, data: result };
+  } catch (err) {
+    if (err instanceof Error) {
+      if (err.message.startsWith("FINE_BLOCK:"))
+        return { success: false, error: err.message };
+      if (err.message.startsWith("MAX_RENEWALS:"))
+        return { success: false, error: err.message };
+      if (err.message === "RESERVATION_BLOCK")
+        return { success: false, error: "RESERVATION_BLOCK" };
+      if (err.message === "NOT_FOUND")
+        return { success: false, error: "NOT_FOUND" };
+      if (err.message === "FORBIDDEN")
+        return { success: false, error: "FORBIDDEN" };
+    }
+    console.error("[renewLoan]", err);
     return { success: false, error: "DB_ERROR" };
   }
 }

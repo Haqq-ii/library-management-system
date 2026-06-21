@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/require-role";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { PICKUP_WINDOW_HOURS } from "@/lib/constants";
 
 export type ActionResult<T> =
   | { success: true; data: T }
@@ -29,8 +30,10 @@ const OpenLibraryEntrySchema = z.object({
 export async function createBook(
   raw: unknown
 ): Promise<ActionResult<{ id: string }>> {
+  // Capture session for AuditLog actorId (AUD-01)
+  let session;
   try {
-    await requireRole("LIBRARIAN");
+    session = await requireRole("LIBRARIAN");
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "FORBIDDEN" };
   }
@@ -41,21 +44,42 @@ export async function createBook(
   }
 
   try {
-    const author = await prisma.author.upsert({
-      where: { name: parsed.data.authorName },
-      update: {},
-      create: { name: parsed.data.authorName },
-    });
+    // Wrap book creation and audit write in a single transaction (T-03-05-05)
+    const book = await prisma.$transaction(async (tx) => {
+      const author = await tx.author.upsert({
+        where: { name: parsed.data.authorName },
+        update: {},
+        create: { name: parsed.data.authorName },
+      });
 
-    const book = await prisma.book.create({
-      data: {
-        isbn: parsed.data.isbn,
-        title: parsed.data.title,
-        authorId: author.id,
-        genre: parsed.data.genre,
-        publisher: parsed.data.publisher,
-        publishedYear: parsed.data.publishedYear,
-      },
+      const createdBook = await tx.book.create({
+        data: {
+          isbn: parsed.data.isbn,
+          title: parsed.data.title,
+          authorId: author.id,
+          genre: parsed.data.genre,
+          publisher: parsed.data.publisher,
+          publishedYear: parsed.data.publishedYear,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: session.user.id,
+          action: "BOOK_ADDED",
+          entityType: "Book",
+          entityId: createdBook.id,
+          details: {
+            description: `Added book '${parsed.data.title}' by ${parsed.data.authorName} (ISBN: ${parsed.data.isbn})`,
+            bookId: createdBook.id,
+            title: parsed.data.title,
+            author: parsed.data.authorName,
+            isbn: parsed.data.isbn,
+          },
+        },
+      });
+
+      return createdBook;
     });
 
     revalidatePath("/books");
@@ -70,8 +94,10 @@ export async function updateBook(
   id: string,
   raw: unknown
 ): Promise<ActionResult<void>> {
+  // Capture session for AuditLog actorId (AUD-01)
+  let session;
   try {
-    await requireRole("LIBRARIAN");
+    session = await requireRole("LIBRARIAN");
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "FORBIDDEN" };
   }
@@ -82,22 +108,39 @@ export async function updateBook(
   }
 
   try {
-    const author = await prisma.author.upsert({
-      where: { name: parsed.data.authorName },
-      update: {},
-      create: { name: parsed.data.authorName },
-    });
+    // Wrap book update and audit write in a single transaction (T-03-05-05)
+    await prisma.$transaction(async (tx) => {
+      const author = await tx.author.upsert({
+        where: { name: parsed.data.authorName },
+        update: {},
+        create: { name: parsed.data.authorName },
+      });
 
-    await prisma.book.update({
-      where: { id },
-      data: {
-        isbn: parsed.data.isbn,
-        title: parsed.data.title,
-        authorId: author.id,
-        genre: parsed.data.genre,
-        publisher: parsed.data.publisher,
-        publishedYear: parsed.data.publishedYear,
-      },
+      await tx.book.update({
+        where: { id },
+        data: {
+          isbn: parsed.data.isbn,
+          title: parsed.data.title,
+          authorId: author.id,
+          genre: parsed.data.genre,
+          publisher: parsed.data.publisher,
+          publishedYear: parsed.data.publishedYear,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: session.user.id,
+          action: "BOOK_EDITED",
+          entityType: "Book",
+          entityId: id,
+          details: {
+            description: `Edited book '${parsed.data.title}'`,
+            bookId: id,
+            title: parsed.data.title,
+          },
+        },
+      });
     });
 
     revalidatePath("/books");
@@ -109,16 +152,41 @@ export async function updateBook(
 }
 
 export async function softDeleteBook(id: string): Promise<ActionResult<void>> {
+  // Capture session for AuditLog actorId (AUD-01)
+  let session;
   try {
-    await requireRole("LIBRARIAN");
+    session = await requireRole("LIBRARIAN");
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "FORBIDDEN" };
   }
 
   try {
-    await prisma.book.update({
-      where: { id },
-      data: { deletedAt: new Date() },
+    // Wrap book delete and audit write in a single transaction (T-03-05-05)
+    await prisma.$transaction(async (tx) => {
+      // Read title before soft-delete for audit description
+      const existingBook = await tx.book.findUnique({
+        where: { id },
+        select: { title: true },
+      });
+
+      await tx.book.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: session.user.id,
+          action: "BOOK_DELETED",
+          entityType: "Book",
+          entityId: id,
+          details: {
+            description: `Deleted book '${existingBook?.title ?? id}'`,
+            bookId: id,
+            title: existingBook?.title ?? id,
+          },
+        },
+      });
     });
 
     revalidatePath("/books");
@@ -225,21 +293,70 @@ export async function reserveBook(bookId: string): Promise<ActionResult<void>> {
     });
     if (existing) return { success: false, error: "ALREADY_RESERVED" };
 
-    const last = await prisma.reservation.findFirst({
-      where: { bookId, status: "PENDING" },
-      orderBy: { queuePosition: "desc" },
-    });
+    // Wrap reservation creation in a transaction: lazy expiry → hold-advance → create PENDING
+    // This ensures atomicity per T-03-03-03 (D-12 lazy cancellation + D-13 expiry-then-advance)
+    await prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const pickupWindowMs = PICKUP_WINDOW_HOURS * 60 * 60 * 1000;
 
-    await prisma.reservation.create({
-      data: {
-        bookId,
-        memberId: member.id,
-        status: "PENDING",
-        queuePosition: (last?.queuePosition ?? 0) + 1,
-      },
+      // Step 1: Lazy expiry — cancel READY reservations past the 48h pickup window (D-12)
+      const expiredReady = await tx.reservation.findMany({
+        where: {
+          bookId,
+          status: "READY",
+          notifiedAt: { lt: new Date(now.getTime() - pickupWindowMs) },
+        },
+      });
+
+      for (const expired of expiredReady) {
+        await tx.reservation.update({
+          where: { id: expired.id },
+          data: { status: "CANCELLED" },
+        });
+      }
+
+      // Step 2: If any READY reservations expired, advance the next PENDING to READY (D-13)
+      if (expiredReady.length > 0) {
+        const nextPending = await tx.reservation.findFirst({
+          where: { bookId, status: "PENDING" },
+          orderBy: [{ queuePosition: "asc" }, { requestedAt: "asc" }],
+        });
+
+        if (nextPending) {
+          // Find a RESERVED copy that was freed by the expiry
+          const reservedCopy = await tx.bookCopy.findFirst({
+            where: { bookId, status: "RESERVED" },
+          });
+
+          if (reservedCopy) {
+            // Advance next PENDING reservation to READY (hold-advance — D-13)
+            await tx.reservation.update({
+              where: { id: nextPending.id },
+              data: { status: "READY", notifiedAt: now },
+            });
+            // Copy remains RESERVED — now assigned to the newly advanced reservation
+          }
+        }
+      }
+
+      // Step 3: Create the new PENDING reservation with correct queuePosition
+      const last = await tx.reservation.findFirst({
+        where: { bookId, status: "PENDING" },
+        orderBy: { queuePosition: "desc" },
+      });
+
+      await tx.reservation.create({
+        data: {
+          bookId,
+          memberId: member.id,
+          status: "PENDING",
+          queuePosition: (last?.queuePosition ?? 0) + 1,
+        },
+      });
     });
 
     revalidatePath("/catalog");
+    revalidatePath("/my-reservations");
     return { success: true, data: undefined };
   } catch (err) {
     console.error("[reserveBook]", err);

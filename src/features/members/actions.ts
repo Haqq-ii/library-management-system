@@ -24,8 +24,10 @@ const UpdateMemberSchema = z.object({
 });
 
 export async function createMember(raw: unknown): Promise<ActionResult<{ id: string }>> {
+  // Capture session for AuditLog actorId (AUD-01)
+  let session;
   try {
-    await requireRole("LIBRARIAN");
+    session = await requireRole("LIBRARIAN");
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "FORBIDDEN" };
   }
@@ -67,6 +69,23 @@ export async function createMember(raw: unknown): Promise<ActionResult<{ id: str
         },
       });
 
+      // AuditLog write inside the same transaction (T-03-05-05, AUD-01)
+      await tx.auditLog.create({
+        data: {
+          actorId: session.user.id,
+          action: "MEMBER_ADDED",
+          entityType: "Member",
+          entityId: user.id,
+          details: {
+            description: `Registered member ${parsed.data.name} (${parsed.data.email}) as ${parsed.data.memberType}`,
+            memberId: user.id,
+            name: parsed.data.name,
+            email: parsed.data.email,
+            memberType: parsed.data.memberType,
+          },
+        },
+      });
+
       return user.id;
     });
 
@@ -80,8 +99,10 @@ export async function createMember(raw: unknown): Promise<ActionResult<{ id: str
 }
 
 export async function updateMember(id: string, raw: unknown): Promise<ActionResult<void>> {
+  // Capture session for AuditLog actorId (AUD-01)
+  let session;
   try {
-    await requireRole("LIBRARIAN");
+    session = await requireRole("LIBRARIAN");
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "FORBIDDEN" };
   }
@@ -90,14 +111,31 @@ export async function updateMember(id: string, raw: unknown): Promise<ActionResu
   if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
 
   try {
-    await prisma.user.update({
-      where: { id },
-      data: { name: parsed.data.name, email: parsed.data.email },
-    });
+    // Wrap both updates and audit write in a single transaction (T-03-05-05)
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id },
+        data: { name: parsed.data.name, email: parsed.data.email },
+      });
 
-    await prisma.member.update({
-      where: { userId: id },
-      data: { memberType: parsed.data.memberType },
+      await tx.member.update({
+        where: { userId: id },
+        data: { memberType: parsed.data.memberType },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: session.user.id,
+          action: "MEMBER_EDITED",
+          entityType: "Member",
+          entityId: id,
+          details: {
+            description: `Updated member ${parsed.data.name}'s profile`,
+            memberId: id,
+            name: parsed.data.name,
+          },
+        },
+      });
     });
 
     revalidatePath("/members");
@@ -109,16 +147,41 @@ export async function updateMember(id: string, raw: unknown): Promise<ActionResu
 }
 
 export async function softDeleteMember(id: string): Promise<ActionResult<void>> {
+  // Capture session for AuditLog actorId (AUD-01)
+  let session;
   try {
-    await requireRole("LIBRARIAN");
+    session = await requireRole("LIBRARIAN");
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "FORBIDDEN" };
   }
 
   try {
-    await prisma.user.update({
-      where: { id },
-      data: { deletedAt: new Date() },
+    // Wrap user update and audit write in a single transaction (T-03-05-05)
+    await prisma.$transaction(async (tx) => {
+      // Read user name before soft-delete for audit description
+      const existingUser = await tx.user.findUnique({
+        where: { id },
+        select: { name: true },
+      });
+
+      await tx.user.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: session.user.id,
+          action: "MEMBER_DEACTIVATED",
+          entityType: "Member",
+          entityId: id,
+          details: {
+            description: `Deactivated member ${existingUser?.name ?? id}'s account`,
+            memberId: id,
+            name: existingUser?.name ?? id,
+          },
+        },
+      });
     });
 
     revalidatePath("/members");
