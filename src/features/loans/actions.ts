@@ -18,9 +18,10 @@ const CheckoutSchema = z.object({
 export async function checkoutBook(
   raw: unknown
 ): Promise<ActionResult<{ id: string }>> {
-  // Step 1: Auth guard (Pattern A — mutations)
+  // Step 1: Auth guard — capture session for AuditLog actorId (AUD-01)
+  let session;
   try {
-    await requireRole("LIBRARIAN");
+    session = await requireRole("LIBRARIAN");
   } catch (err) {
     return {
       success: false,
@@ -38,10 +39,12 @@ export async function checkoutBook(
   // Step 3: Look up member and loan policy
   const member = await prisma.member.findUnique({
     where: { id: memberId },
+    include: { user: true },
   });
   if (!member) {
     return { success: false, error: "INVALID_INPUT" };
   }
+  const memberName = member.user.name;
 
   const policy = await prisma.loanPolicy.findUnique({
     where: { memberType: member.memberType },
@@ -80,6 +83,12 @@ export async function checkoutBook(
 
       const copyId = copies[0].id;
 
+      // Look up copy barcode and book title for audit trail (AUD-01)
+      const [copyData, bookData] = await Promise.all([
+        tx.bookCopy.findUnique({ where: { id: copyId }, select: { barcode: true } }),
+        tx.book.findUnique({ where: { id: bookId }, select: { title: true } }),
+      ]);
+
       // Mark the copy as checked out
       await tx.bookCopy.update({
         where: { id: copyId },
@@ -96,6 +105,24 @@ export async function checkoutBook(
           memberId,
           dueAt,
           status: "ACTIVE",
+        },
+      });
+
+      // AuditLog write inside transaction (AUD-01, T-03-05-05)
+      await tx.auditLog.create({
+        data: {
+          actorId: session.user.id,
+          action: "CHECKOUT",
+          entityType: "Loan",
+          entityId: newLoan.id,
+          details: {
+            description: `Checked out '${bookData?.title ?? bookId}' (copy ${copyData?.barcode ?? copyId}) to ${memberName}, due ${dueAt.toISOString()}`,
+            memberId,
+            memberName,
+            bookTitle: bookData?.title ?? bookId,
+            copyBarcode: copyData?.barcode ?? copyId,
+            dueAt: dueAt.toISOString(),
+          },
         },
       });
 
@@ -118,9 +145,10 @@ export async function checkoutBook(
 export async function returnBook(
   loanId: string
 ): Promise<ActionResult<{ holdTriggered: boolean; holdMemberName?: string }>> {
-  // Step 1: Auth guard (T-02-06 — requireRole first, middleware not trusted CVE-2025-29927)
+  // Step 1: Auth guard — capture session for AuditLog actorId (AUD-01, CVE-2025-29927)
+  let session;
   try {
-    await requireRole("LIBRARIAN");
+    session = await requireRole("LIBRARIAN");
   } catch (err) {
     return {
       success: false,
@@ -183,6 +211,24 @@ export async function returnBook(
         await tx.loan.update({
           where: { id: loanId },
           data: { returnedAt: now, status: "RETURNED" },
+        });
+
+        // AuditLog write for RETURN (AUD-01)
+        await tx.auditLog.create({
+          data: {
+            actorId: session.user.id,
+            action: "RETURN",
+            entityType: "Loan",
+            entityId: loanId,
+            details: {
+              description: `Returned '${loan.copy.book.title}' (copy ${loan.copy.barcode}) from ${loan.member.user.name}`,
+              memberId: loan.memberId,
+              memberName: loan.member.user.name,
+              bookTitle: loan.copy.book.title,
+              copyBarcode: loan.copy.barcode,
+              returnedAt: now.toISOString(),
+            },
+          },
         });
 
         // Lazy expiry (RES-02 / D-12): cancel READY reservations past pickup window
