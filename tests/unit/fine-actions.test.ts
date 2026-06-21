@@ -51,6 +51,8 @@ const mockFine = {
 describe("waiveFine", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset transaction to the default callback implementation after each test
+    vi.mocked(prisma.$transaction).mockImplementation((cb: (tx: typeof tx) => Promise<unknown>) => cb(tx));
   });
 
   it("Test 1: MEMBER role returns FORBIDDEN", async () => {
