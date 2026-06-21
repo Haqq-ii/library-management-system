@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/require-role";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { PICKUP_WINDOW_HOURS } from "@/lib/constants";
 
 export type ActionResult<T> =
   | { success: true; data: T }
@@ -47,6 +48,16 @@ export async function checkoutBook(
   });
   if (!policy) {
     return { success: false, error: "NO_POLICY" };
+  }
+
+  // FINE_BLOCK check (FINE-03): block checkout if member has unpaid fines >= threshold
+  const unpaidFines = await prisma.fine.aggregate({
+    where: { memberId, status: "UNPAID" },
+    _sum: { amount: true },
+  });
+  const unpaidTotal = Number(unpaidFines._sum.amount ?? 0);
+  if (unpaidTotal >= Number(policy.maxUnpaidFineAmount)) {
+    return { success: false, error: `FINE_BLOCK:${unpaidTotal.toFixed(2)}` };
   }
 
   const loanDays = policy.loanDays;
@@ -174,6 +185,23 @@ export async function returnBook(
           data: { returnedAt: now, status: "RETURNED" },
         });
 
+        // Lazy expiry (RES-02 / D-12): cancel READY reservations past pickup window
+        // before advancing the hold queue (D-13: expiry-then-advance pattern)
+        const PICKUP_WINDOW_MS = PICKUP_WINDOW_HOURS * 60 * 60 * 1000;
+        const expiredReady = await tx.reservation.findMany({
+          where: {
+            bookId,
+            status: "READY",
+            notifiedAt: { lt: new Date(now.getTime() - PICKUP_WINDOW_MS) },
+          },
+        });
+        for (const expired of expiredReady) {
+          await tx.reservation.update({
+            where: { id: expired.id },
+            data: { status: "CANCELLED" },
+          });
+        }
+
         // Hold check (D-09): find earliest PENDING reservation for this book title
         const pendingReservation = await tx.reservation.findFirst({
           where: { bookId, status: "PENDING" },
@@ -221,6 +249,100 @@ export async function returnBook(
       return { success: false, error: "NOT_FOUND" };
     }
     console.error("[returnBook]", err);
+    return { success: false, error: "DB_ERROR" };
+  }
+}
+
+export async function renewLoan(
+  loanId: string
+): Promise<ActionResult<{ newDueAt: Date }>> {
+  // Step 1: Auth — member only; capture session for ownership check (T-03-04-01)
+  let session;
+  try {
+    session = await requireRole("MEMBER");
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "FORBIDDEN",
+    };
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const loan = await tx.loan.findUnique({
+        where: { id: loanId },
+        include: {
+          member: { include: { user: true } },
+          copy: { include: { book: true } },
+        },
+      });
+
+      if (!loan) throw new Error("NOT_FOUND");
+
+      // Ownership check (T-03-04-02 IDOR): member can only renew their own loan
+      if (loan.member.userId !== session.user.id) throw new Error("FORBIDDEN");
+
+      const policy = await tx.loanPolicy.findUnique({
+        where: { memberType: loan.member.memberType },
+      });
+      if (!policy) throw new Error("NO_POLICY");
+
+      // Block 1: FINE_BLOCK — checked first (D-15, T-03-04-03/04)
+      const unpaidFines = await tx.fine.aggregate({
+        where: { memberId: loan.memberId, status: "UNPAID" },
+        _sum: { amount: true },
+      });
+      const unpaidTotal = Number(unpaidFines._sum.amount ?? 0);
+      if (unpaidTotal >= Number(policy.maxUnpaidFineAmount)) {
+        throw new Error(`FINE_BLOCK:${unpaidTotal.toFixed(2)}`);
+      }
+
+      // Block 2: MAX_RENEWALS — checked second (D-15)
+      if (loan.renewCount >= policy.maxRenewals) {
+        throw new Error(`MAX_RENEWALS:${policy.maxRenewals}`);
+      }
+
+      // Block 3: RESERVATION_BLOCK — checked third (D-15)
+      const activeReservation = await tx.reservation.findFirst({
+        where: {
+          bookId: loan.copy.bookId,
+          status: { in: ["PENDING", "READY"] },
+        },
+      });
+      if (activeReservation) {
+        throw new Error("RESERVATION_BLOCK");
+      }
+
+      // Compute new due date: current dueAt + loanDays using UTC epoch math (D-14, T-03-04-05)
+      const currentDue = new Date(loan.dueAt);
+      const newDueAt = new Date(
+        currentDue.getTime() + policy.loanDays * 24 * 60 * 60 * 1000
+      );
+
+      await tx.loan.update({
+        where: { id: loanId },
+        data: { dueAt: newDueAt, renewCount: { increment: 1 } },
+      });
+
+      return { newDueAt };
+    });
+
+    revalidatePath("/my-loans");
+    return { success: true, data: result };
+  } catch (err) {
+    if (err instanceof Error) {
+      if (err.message.startsWith("FINE_BLOCK:"))
+        return { success: false, error: err.message };
+      if (err.message.startsWith("MAX_RENEWALS:"))
+        return { success: false, error: err.message };
+      if (err.message === "RESERVATION_BLOCK")
+        return { success: false, error: "RESERVATION_BLOCK" };
+      if (err.message === "NOT_FOUND")
+        return { success: false, error: "NOT_FOUND" };
+      if (err.message === "FORBIDDEN")
+        return { success: false, error: "FORBIDDEN" };
+    }
+    console.error("[renewLoan]", err);
     return { success: false, error: "DB_ERROR" };
   }
 }
