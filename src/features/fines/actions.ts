@@ -31,20 +31,7 @@ export async function waiveFine(raw: unknown): Promise<ActionResult<void>> {
 
   // Step 3: Mutate + audit write in one transaction
   try {
-    await prisma.$transaction(async (tx: {
-      fine: {
-        update: (args: unknown) => Promise<{
-          id: string;
-          memberId: string;
-          amount: number | { toNumber: () => number };
-          member: { user: { name: string } };
-          loan: { copy: { book: { title: string } } };
-        }>;
-      };
-      auditLog: {
-        create: (args: unknown) => Promise<{ id: string }>;
-      };
-    }) => {
+    await prisma.$transaction(async (tx) => {
       const fine = await tx.fine.update({
         where: { id: fineId },
         data: {
