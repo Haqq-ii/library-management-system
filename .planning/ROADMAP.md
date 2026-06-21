@@ -102,7 +102,27 @@ Plans:
   4. Member can renew a loan only if no active reservation exists on the title, the renewal count is within the configured maximum, and fines are below the threshold
   5. Librarian can view and filter the audit log by date range and action type, seeing every catalog change, checkout, return, and fine waiver with actor and timestamp
 
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+
+**Wave 1**
+
+- [ ] 03-01-PLAN.md — Schema migration: AuditLog model, AuditAction enum, Fine.waivedReason field
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 03-02-PLAN.md — Fine management slice: waiveFine action, FinesTable, /fines page
+- [ ] 03-03-PLAN.md — Reservations slice: cancelReservation action, lazy expiry in reserveBook, /my-reservations page
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 03-04-PLAN.md — Loan action extensions: FINE_BLOCK in checkoutBook, lazy expiry in returnBook, renewLoan
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 03-05-PLAN.md — Audit log slice: retrofit catalog/member/loan actions with AuditLog writes, AuditTable, /audit page
+- [ ] 03-06-PLAN.md — UI wiring: ActiveLoansClient Renew button, CheckoutSheet FINE_BLOCK error, AppSidebar nav additions
+
 **UI hint**: yes
 
 ### Phase 4: Notifications & Backups
