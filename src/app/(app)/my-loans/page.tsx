@@ -11,7 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { isLoanOverdue, partitionLoans } from "@/features/loans/loan-display";
+import { partitionLoans } from "@/features/loans/loan-display";
+import { ActiveLoansClient } from "@/features/loans/ActiveLoansClient";
 
 export default async function MyLoansPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -62,63 +63,7 @@ export default async function MyLoansPage() {
           </span>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Book</TableHead>
-              <TableHead>Author</TableHead>
-              <TableHead>Issued</TableHead>
-              <TableHead>Due</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedActive.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="text-center text-muted-foreground py-8"
-                >
-                  No active loans
-                </TableCell>
-              </TableRow>
-            ) : (
-              sortedActive.map((loan) => {
-                const overdue = isLoanOverdue(loan);
-                return (
-                  <TableRow
-                    key={loan.id}
-                    className={overdue ? "bg-red-50" : undefined}
-                  >
-                    <TableCell className="font-medium">
-                      {loan.copy.book.title}
-                    </TableCell>
-                    <TableCell>{loan.copy.book.author.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(loan.issuedAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell
-                      className={
-                        overdue ? "text-red-600 font-medium" : "text-sm"
-                      }
-                    >
-                      {new Date(loan.dueAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {overdue ? (
-                        <Badge variant="destructive">Overdue</Badge>
-                      ) : (
-                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                          Active
-                        </Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+        <ActiveLoansClient loans={sortedActive} />
       </section>
 
       {/* Loan History section */}
