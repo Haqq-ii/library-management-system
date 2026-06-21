@@ -1,3 +1,6 @@
+"use client";
+
+import { useTransition } from "react";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import {
@@ -8,9 +11,26 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { reserveBook } from "@/features/catalog/actions";
 import type { BookCardData } from "@/features/catalog/catalog-search";
 
 export function BookCard({ book }: { book: BookCardData }) {
+  const [isPending, startTransition] = useTransition();
+
+  function handleReserve() {
+    startTransition(async () => {
+      const result = await reserveBook(book.id);
+      if (result.success) {
+        toast.success("You're on the waitlist for this book.");
+      } else if (result.error === "ALREADY_RESERVED") {
+        toast.info("You already have a reservation for this book.");
+      } else {
+        toast.error("Couldn't place reservation. Please try again.");
+      }
+    });
+  }
+
   return (
     <Card data-testid="book-card" className="flex flex-col">
       <Link href={`/books/${book.id}`} className="flex flex-col flex-1">
@@ -34,7 +54,11 @@ export function BookCard({ book }: { book: BookCardData }) {
         </CardContent>
       </Link>
       <CardFooter>
-        <Button className="w-full" disabled title="Coming in Phase 3">
+        <Button
+          className="w-full"
+          disabled={book.availableCount > 0 || isPending}
+          onClick={handleReserve}
+        >
           Reserve
         </Button>
       </CardFooter>

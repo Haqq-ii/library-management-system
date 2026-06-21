@@ -149,6 +149,22 @@ No `TBD`, `FIXME`, or `XXX` markers found in any phase-modified file. No unrefer
 
 ---
 
+### UAT Bug — Decimal Serialization (Found 2026-06-15, Fixed)
+
+**Bug:** `/loans` threw `Only plain objects can be passed to Client Components — Decimal objects are not supported` on every page load, blocking all UAT.
+
+**Root cause:** `prisma.loanPolicy.findMany()` returns `fineDailyRate` and `maxUnpaidFineAmount` as Prisma `Decimal` instances. These were passed directly to `<LoansTable policies={policies} />` (a `"use client"` component) without serialization.
+
+**Fix applied to `loans/page.tsx`:** Map over `rawPolicies` and call `.toNumber()` on both Decimal fields before passing to the Client Component.
+
+**Fix applied to `LoansTable.tsx`:** Narrowed `LoanPolicy.fineDailyRate` type from `number | { toNumber: () => number }` to `number`; removed the now-unnecessary `getFineRate` wrapper and inlined `policy.fineDailyRate` directly.
+
+**Static analysis gap:** The original verification used grep/read-based analysis. The Prisma `Decimal` type satisfies TypeScript's structural typing — it has `toString`, `valueOf`, and numeric coercions — so no type error fires at build time. The failure only surfaces at Next.js serialization across the Server→Client boundary at runtime. This class of bug (non-plain-object props) requires a running app to catch.
+
+**Status:** FIXED — `/loans` now loads cleanly.
+
+---
+
 ### Human Verification Required
 
 Six items require a running application with a seeded database. All are end-to-end UI/UX or concurrency behaviors that cannot be verified with static analysis.

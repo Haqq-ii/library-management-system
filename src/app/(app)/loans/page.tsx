@@ -16,7 +16,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
   const params = await searchParams;
   const activeTab = (params.tab === "all" ? "all" : "active") as "active" | "all";
 
-  const [loans, policies] = await Promise.all([
+  const [loans, rawPolicies] = await Promise.all([
     prisma.loan.findMany({
       include: {
         copy: { include: { book: { include: { author: true } } } },
@@ -26,6 +26,12 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
     }),
     prisma.loanPolicy.findMany(),
   ]);
+
+  const policies = rawPolicies.map((p) => ({
+    ...p,
+    fineDailyRate: p.fineDailyRate.toNumber(),
+    maxUnpaidFineAmount: p.maxUnpaidFineAmount.toNumber(),
+  }));
 
   const activeCount = loans.filter(
     (l: { status: string }) => l.status === "ACTIVE" || l.status === "OVERDUE"

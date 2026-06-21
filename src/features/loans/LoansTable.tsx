@@ -41,7 +41,7 @@ interface LoanData {
 interface LoanPolicy {
   memberType: string;
   loanDays: number;
-  fineDailyRate: number | { toNumber: () => number };
+  fineDailyRate: number;
 }
 
 interface LoansTableProps {
@@ -59,12 +59,6 @@ interface ReturnTarget {
 
 const PAGE_SIZE = 20;
 
-function getFineRate(policy: LoanPolicy): number {
-  if (typeof policy.fineDailyRate === "object" && policy.fineDailyRate !== null) {
-    return policy.fineDailyRate.toNumber();
-  }
-  return Number(policy.fineDailyRate);
-}
 
 function LoanStatusBadge({ loan }: { loan: LoanData }) {
   if (loan.returnedAt) {
@@ -120,7 +114,7 @@ function ActiveLoansTab({
       const daysOverdue = Math.max(0, Math.ceil(overdueMs / (24 * 60 * 60 * 1000)));
       // Look up fine rate from policy matching member type
       const policy = policies.find((p) => p.memberType === loan.member.memberType);
-      const fineRate = policy ? getFineRate(policy) : 0;
+      const fineRate = policy ? policy.fineDailyRate : 0;
       const fineAmount = fineRate * daysOverdue;
 
       setReturnTarget({

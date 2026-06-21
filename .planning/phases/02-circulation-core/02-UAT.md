@@ -3,8 +3,13 @@ status: testing
 phase: 02-circulation-core
 source: [02-VERIFICATION.md]
 started: 2026-06-15T12:30:00Z
-updated: 2026-06-15T12:30:00Z
+updated: 2026-06-15T13:00:00Z
 ---
+
+## Blocker Resolved
+
+**`/loans` Decimal serialization bug — FIXED 2026-06-15**
+`fineDailyRate` and `maxUnpaidFineAmount` are now serialized to plain `number` in `loans/page.tsx` before being passed to `LoansTable`. Page loads cleanly. UAT can proceed.
 
 ## Current Test
 

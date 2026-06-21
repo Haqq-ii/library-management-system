@@ -206,6 +206,47 @@ export async function setCopyStatus(
   }
 }
 
+export async function reserveBook(bookId: string): Promise<ActionResult<void>> {
+  let session;
+  try {
+    session = await requireRole("MEMBER");
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "FORBIDDEN" };
+  }
+
+  try {
+    const member = await prisma.member.findUnique({
+      where: { userId: session.user.id },
+    });
+    if (!member) return { success: false, error: "NO_MEMBER" };
+
+    const existing = await prisma.reservation.findFirst({
+      where: { bookId, memberId: member.id, status: "PENDING" },
+    });
+    if (existing) return { success: false, error: "ALREADY_RESERVED" };
+
+    const last = await prisma.reservation.findFirst({
+      where: { bookId, status: "PENDING" },
+      orderBy: { queuePosition: "desc" },
+    });
+
+    await prisma.reservation.create({
+      data: {
+        bookId,
+        memberId: member.id,
+        status: "PENDING",
+        queuePosition: (last?.queuePosition ?? 0) + 1,
+      },
+    });
+
+    revalidatePath("/catalog");
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error("[reserveBook]", err);
+    return { success: false, error: "DB_ERROR" };
+  }
+}
+
 export async function fetchBookByISBN(isbn: string): Promise<
   ActionResult<{
     title: string | null;
