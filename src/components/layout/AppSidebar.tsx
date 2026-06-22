@@ -15,6 +15,7 @@ import {
   Receipt,
   ClipboardList,
   Bell,
+  BarChart2,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
@@ -60,6 +61,7 @@ const LIBRARIAN_NAV: NavItem[] = [
   { href: "/fines", label: "Fines", icon: Receipt },
   { href: "/audit", label: "Audit Log", icon: ClipboardList },
   { href: "/notifications", label: "Notification Log", icon: Bell },
+  { href: "/reports", label: "Reports", icon: BarChart2 },
 ];
 
 const MEMBER_NAV: NavItem[] = [
