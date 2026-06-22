@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: context exhaustion at 75% (2026-06-21)
-last_updated: "2026-06-22T12:18:40.213Z"
-last_activity: 2026-06-22 -- Phase 04 execution started
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-06-22T13:00:00.000Z"
+last_activity: 2026-06-22 -- Phase 04 plan 04-05 (Backups) complete
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 22
-  completed_plans: 14
-  percent: 40
+  completed_plans: 15
+  percent: 45
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-06-09)
 ## Current Position
 
 Phase: 04 (notifications-backups) — EXECUTING
-Plan: 2 of 5
-Status: Ready to execute
-Last activity: 2026-06-22 -- Phase 04 execution started
+Plan: 5 of 5 (04-05 complete; Wave 2 plans 04-02, 04-04 and Wave 3 plan 04-03 remaining)
+Status: 04-05 complete — Wave 2 plans next
+Last activity: 2026-06-22 -- Phase 04 plan 04-05 (Backups/INFRA-05) complete
 
 Progress: [██████████] 100%
 
@@ -52,7 +52,8 @@ Progress: [██████████] 100%
 - Trend: -
 
 *Updated after each plan completion*
-| Phase 04 P01 | 65 | 3 tasks | 9 files |
+| Phase 04 P01 | 65min | 3 tasks | 9 files |
+| Phase 04 P05 | 15min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,7 @@ Recent decisions affecting current work:
 - [Pre-Phase 1]: Docker-first dev environment from commit 1; Railway for production (persistent node-cron process)
 - [Phase 01 review]: /books/[id] is accessible to all authenticated users; isLibrarian passed as prop gates management UI — same page serves member read-only and librarian CRUD views
 - [Phase ?]: Used vi.hoisted() in Vitest for Resend mock — factories are hoisted above var declarations
+- [Phase 04-05]: Backup sidecar uses same postgres:16-alpine image with Alpine crond + pg_dump -Fc; doubled $$ prevents Compose interpolation; backups/ gitignored (PII+hashes in dump files)
 
 ### Pending Todos
 
@@ -91,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-22T12:18:40.205Z
-Stopped at: context exhaustion at 75% (2026-06-21)
-Resume file: .planning/phases/03-fines-reservations-renewals-audit/03-UI-SPEC.md
+Last session: 2026-06-22T13:00:00.000Z
+Stopped at: Completed 04-05-PLAN.md
+Resume file: None — next plans are 04-02, 04-04 (Wave 2), then 04-03 (Wave 3)

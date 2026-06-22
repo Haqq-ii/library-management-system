@@ -150,7 +150,7 @@ Plans:
 
 - [ ] 04-02-PLAN.md — Cron slice: remove standalone output, custom server.ts + node-cron, overdue-scan handler, due/overdue email wrappers (NOTF-01, NOTF-02)
 - [ ] 04-04-PLAN.md — Delivery log UI: getNotificationLog action, NotificationLogTable, /notifications page, sidebar nav (NOTF-04)
-- [ ] 04-05-PLAN.md — Backups: pg_dump sidecar in docker-compose, Railway + self-hosted docs, backup-exists checkpoint (INFRA-05)
+- [x] 04-05-PLAN.md — Backups: pg_dump sidecar in docker-compose, Railway + self-hosted docs, backup-exists checkpoint (INFRA-05)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -184,5 +184,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation | 2/8 | In Progress|  |
 | 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
 | 3. Fines, Reservations, Renewals & Audit | 6/6 | Complete   | 2026-06-21 |
-| 4. Notifications & Backups | 1/5 | In Progress|  |
+| 4. Notifications & Backups | 2/5 | In Progress|  |
 | 5. Reports & Analytics | 0/TBD | Not started | - |
