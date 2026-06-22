@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { getPopularBooks, type PopularBookRow } from "./popular";
 
 interface PopularBooksTableProps {
@@ -34,6 +35,12 @@ export function PopularBooksTable({
       const r = await getPopularBooks({ fromDate, toDate });
       if (r.success) {
         setRows(r.data);
+      } else {
+        if (r.error === "INVALID_DATE_RANGE") {
+          toast.error("From date must be before To date.");
+        } else {
+          toast.error("Failed to load data. Please try again.");
+        }
       }
     });
   }
@@ -43,8 +50,14 @@ export function PopularBooksTable({
       {/* Filter bar — matches AuditTable pattern */}
       <div className="flex items-end gap-4 flex-wrap">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium">From</label>
+          <label
+            htmlFor="popular-from-date"
+            className="text-xs text-muted-foreground font-medium"
+          >
+            From
+          </label>
           <Input
+            id="popular-from-date"
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
@@ -53,8 +66,14 @@ export function PopularBooksTable({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium">To</label>
+          <label
+            htmlFor="popular-to-date"
+            className="text-xs text-muted-foreground font-medium"
+          >
+            To
+          </label>
           <Input
+            id="popular-to-date"
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}

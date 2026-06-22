@@ -46,6 +46,11 @@ export async function getBorrowingActivity(params: {
     }
   }
 
+  // Guard against inverted date range — PostgreSQL would return 0 rows silently
+  if (from > to) {
+    return { success: false, error: "INVALID_DATE_RANGE" };
+  }
+
   try {
     // Run both queries in parallel (T-05-12 — two bounded findMany selects, no N+1)
     const [issuedLoans, returnedLoans] = await Promise.all([

@@ -15,6 +15,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import { getBorrowingActivity, type ActivityPoint } from "./activity";
 
 interface BorrowingActivityChartProps {
@@ -38,6 +39,12 @@ export function BorrowingActivityChart({
       const r = await getBorrowingActivity({ fromDate, toDate });
       if (r.success) {
         setData(r.data);
+      } else {
+        if (r.error === "INVALID_DATE_RANGE") {
+          toast.error("From date must be before To date.");
+        } else {
+          toast.error("Failed to load data. Please try again.");
+        }
       }
     });
   }
@@ -48,15 +55,21 @@ export function BorrowingActivityChart({
     data.every((p) => p.loanCount === 0 && p.returnCount === 0);
 
   // Show every 7th label when range exceeds 14 days
-  const xAxisInterval = data.length > 14 ? 6 : 0;
+  const xAxisInterval = data.length >= 14 ? 6 : 0;
 
   return (
     <div className="space-y-4">
       {/* Filter bar — identical structure to PopularBooksTable */}
       <div className="flex items-end gap-4 flex-wrap">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium">From</label>
+          <label
+            htmlFor="activity-from-date"
+            className="text-xs text-muted-foreground font-medium"
+          >
+            From
+          </label>
           <Input
+            id="activity-from-date"
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
@@ -65,8 +78,14 @@ export function BorrowingActivityChart({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium">To</label>
+          <label
+            htmlFor="activity-to-date"
+            className="text-xs text-muted-foreground font-medium"
+          >
+            To
+          </label>
           <Input
+            id="activity-to-date"
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
