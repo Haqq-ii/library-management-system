@@ -6,6 +6,8 @@ import { getFineSummary } from "@/features/reports/actions";
 import { FineSummaryCards } from "@/features/reports/FineSummaryCards";
 import { getOverdueLoans } from "@/features/reports/overdue";
 import { OverdueLoansTable } from "@/features/reports/OverdueLoansTable";
+import { getPopularBooks } from "@/features/reports/popular";
+import { PopularBooksTable } from "@/features/reports/PopularBooksTable";
 
 export default async function ReportsPage() {
   // Auth guard: only librarians may access reports (T-05-01)
@@ -22,6 +24,13 @@ export default async function ReportsPage() {
   // Fetch overdue loans server-side (RPT-01)
   const overdueResult = await getOverdueLoans();
   const overdueRows = overdueResult.success ? overdueResult.data : [];
+
+  // Fetch popular books server-side for default last-30-days range (RPT-02)
+  const today = new Date();
+  const toStr = today.toISOString().slice(0, 10);
+  const fromStr = new Date(today.getTime() - 30 * 86_400_000).toISOString().slice(0, 10);
+  const popularResult = await getPopularBooks({ fromDate: fromStr, toDate: toStr });
+  const popularRows = popularResult.success ? popularResult.data : [];
 
   return (
     <div className="space-y-6">
@@ -40,9 +49,11 @@ export default async function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="popular">
-          <p className="text-sm text-muted-foreground py-12 text-center">
-            Coming soon
-          </p>
+          <PopularBooksTable
+            initialRows={popularRows}
+            initialFrom={fromStr}
+            initialTo={toStr}
+          />
         </TabsContent>
 
         <TabsContent value="activity">
