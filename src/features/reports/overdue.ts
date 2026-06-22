@@ -41,7 +41,12 @@ export async function getOverdueLoans(): Promise<ActionResult<OverdueLoanRow[]>>
       orderBy: { dueAt: "asc" },
     });
 
-    const rows: OverdueLoanRow[] = loans.map((loan) => ({
+    const rows: OverdueLoanRow[] = loans.map((loan: {
+      id: string;
+      dueAt: Date;
+      member: { user: { name: string } };
+      copy: { book: { title: string } };
+    }) => ({
       id: loan.id,
       memberName: loan.member.user.name,
       bookTitle: loan.copy.book.title,

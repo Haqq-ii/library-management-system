@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getFineSummary } from "@/features/reports/actions";
 import { FineSummaryCards } from "@/features/reports/FineSummaryCards";
+import { getOverdueLoans } from "@/features/reports/overdue";
+import { OverdueLoansTable } from "@/features/reports/OverdueLoansTable";
 
 export default async function ReportsPage() {
   // Auth guard: only librarians may access reports (T-05-01)
@@ -16,6 +18,10 @@ export default async function ReportsPage() {
   const { recorded, waived, outstanding } = result.success
     ? result.data
     : { recorded: 0, waived: 0, outstanding: 0 };
+
+  // Fetch overdue loans server-side (RPT-01)
+  const overdueResult = await getOverdueLoans();
+  const overdueRows = overdueResult.success ? overdueResult.data : [];
 
   return (
     <div className="space-y-6">
@@ -30,9 +36,7 @@ export default async function ReportsPage() {
         </TabsList>
 
         <TabsContent value="overdue">
-          <p className="text-sm text-muted-foreground py-12 text-center">
-            Coming soon
-          </p>
+          <OverdueLoansTable rows={overdueRows} />
         </TabsContent>
 
         <TabsContent value="popular">
