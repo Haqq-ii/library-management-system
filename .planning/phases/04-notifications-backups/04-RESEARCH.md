@@ -567,22 +567,25 @@ Railway Dashboard → your PostgreSQL service → Settings → Backups tab
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Custom server vs dropping standalone output**
    - What we know: `output: "standalone"` conflicts with `instrumentation.ts` cron registration; the Dockerfile currently uses `CMD ["node", "server.js"]` (standalone output's `server.js`)
    - What's unclear: Whether the planner should (a) drop `output: "standalone"` and copy full `node_modules` in the Dockerfile, or (b) bundle a custom `server.ts` separately using esbuild and put it alongside the standalone output
    - Recommendation: Option (a) — remove `output: "standalone"`, adjust Dockerfile to a standard Node.js build. This is simpler and the image size tradeoff is acceptable for a single-institution deployment. The Dockerfile already has a multi-stage build that can be adapted.
+   - **RESOLVED: Plan 04-02 removes `output: "standalone"` from `next.config.ts` and introduces a custom `server.ts` with node-cron. Dockerfile is updated to standard Node.js build (no standalone).**
 
 2. **RESEND_FROM_EMAIL domain verification**
    - What we know: Resend requires a verified domain for production `from:` addresses; `onboarding@resend.dev` only works for Resend's own test domain
    - What's unclear: Whether the user has a custom domain to verify, or will use Resend's shared sending domain
    - Recommendation: Use `delivered@resend.dev` as `to:` in dev (Resend test address), add `RESEND_FROM_EMAIL` env var and document that a custom domain must be verified before production use
+   - **RESOLVED: Plan 04-01 adds `RESEND_FROM_EMAIL` to `.env.example` with a `onboarding@resend.dev` dev fallback and documents that a custom domain must be verified before production use.**
 
 3. **Notification log UI page name and nav placement**
    - What we know: NOTF-04 requires a librarian-inspectable delivery log; the pattern is identical to `/audit`
    - What's unclear: Whether this should be a dedicated `/notifications` page or a tab within `/audit`
    - Recommendation: Separate `/notifications` page, mirroring the `/audit` pattern. Add to LIBRARIAN_NAV in AppSidebar.
+   - **RESOLVED: Plan 04-04 creates a dedicated `/notifications` page with its own `NotificationLogTable` client component and adds a "Notifications" entry to LIBRARIAN_NAV in `AppSidebar.tsx`.**
 
 ---
 
