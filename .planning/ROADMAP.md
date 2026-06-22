@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Circulation Core** - Checkout, return flow, loan history for librarian and member (completed 2026-06-15)
 - [x] **Phase 3: Fines, Reservations, Renewals & Audit** - Fine lifecycle, hold queue, self-service renewal, audit log (completed 2026-06-21)
 - [x] **Phase 4: Notifications & Backups** - Transactional email, scheduled overdue detection, delivery log, DB backup (completed 2026-06-22)
-- [ ] **Phase 5: Reports & Analytics** - Librarian dashboards, borrowing charts, all four report types
+- [x] **Phase 5: Reports & Analytics** - Librarian dashboards, borrowing charts, all four report types (completed 2026-06-22)
 
 ## Phase Details
 
@@ -188,7 +188,7 @@ Plans:
 
 **Wave 4** *(blocked on 05-01, 05-03)*
 
-- [ ] 05-04-PLAN.md — RPT-03 Borrowing Activity slice: getBorrowingActivity, recharts BorrowingActivityChart, tab wiring
+- [x] 05-04-PLAN.md — RPT-03 Borrowing Activity slice: getBorrowingActivity, recharts BorrowingActivityChart, tab wiring
 
 **UI hint**: yes
 
@@ -203,4 +203,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
 | 3. Fines, Reservations, Renewals & Audit | 6/6 | Complete   | 2026-06-21 |
 | 4. Notifications & Backups | 5/5 | Complete   | 2026-06-22 |
-| 5. Reports & Analytics | 3/4 | In Progress|  |
+| 5. Reports & Analytics | 4/4 | Complete   | 2026-06-22 |
