@@ -2,8 +2,8 @@
 phase: 4
 slug: notifications-backups
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-22
 ---
 
@@ -38,11 +38,13 @@ created: 2026-06-22
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 4-01-01 | 01 | 1 | NOTF-01 | — | Resend sends only to authenticated member emails | build | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
-| 4-01-02 | 01 | 1 | NOTF-02 | — | Overdue alert only fires for ACTIVE loans past dueAt | build | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
-| 4-02-01 | 02 | 2 | NOTF-03 | — | Hold-ready email fires only when holdTriggered=true | build | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
-| 4-03-01 | 03 | 2 | NOTF-04 | — | NotificationLog records sent/failed status accurately | build | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
-| 4-04-01 | 04 | 3 | INFRA-05 | — | Backup config present and documented | manual | Visual verification | ❌ W0 | ⬜ pending |
+| 4-01-01 | 01 | 1 | NOTF-04 | — | sendAndLog writes NotificationLog with correct status | unit | `npm test -- tests/unit/email.test.ts` | ❌ W0 | ⬜ pending |
+| 4-01-02 | 01 | 1 | NOTF-04 | — | React Email templates render without errors | build | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
+| 4-02-01 | 02 | 2 | NOTF-01 | — | Due-date reminder fires only for loans dueAt <= now+3d | unit | `npm test -- tests/unit/overdue-scan.test.ts` | ❌ W0 | ⬜ pending |
+| 4-02-02 | 02 | 2 | NOTF-02 | — | Overdue alert fires only for ACTIVE loans past dueAt | unit | `npm test -- tests/unit/overdue-scan.test.ts` | ❌ W0 | ⬜ pending |
+| 4-03-01 | 03 | 3 | NOTF-03 | — | Hold-ready email fires only when holdTriggered=true | build | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
+| 4-04-01 | 04 | 2 | NOTF-04 | — | Notification log page requires LIBRARIAN role (grep gate) | build | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
+| 4-05-01 | 05 | 1 | INFRA-05 | — | Backup config present in docker-compose.yml and documented | manual | Visual verification | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -50,11 +52,11 @@ created: 2026-06-22
 
 ## Wave 0 Requirements
 
-- [ ] Install packages: `npm install resend react-email @react-email/components @react-email/render node-cron @types/node-cron`
-- [ ] Create `server.ts` custom server entry point with node-cron scheduler
-- [ ] Verify `next build` passes after package installs
+- [x] Install packages: `npm install resend react-email @react-email/components @react-email/render node-cron @types/node-cron` — handled in Plan 04-01 Task 1
+- [x] Create `tests/unit/email.test.ts` with stubs for sendAndLog behaviors — handled in Plan 04-01 Task 2
+- [x] Create `tests/unit/overdue-scan.test.ts` with stubs for due-date and overdue scan behaviors — handled in Plan 04-01 Task 2
 
-*Email templates and cron handlers are new files — existing test infra (`next build`) covers all phase requirements.*
+*Wave 0 scaffolding is built into Plan 04-01 Task 2.*
 
 ---
 
