@@ -2,10 +2,7 @@
 
 import { requireRole } from "@/lib/require-role";
 import { prisma } from "@/lib/db";
-
-export type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+import type { ActionResult } from "@/features/reports/actions";
 
 export type OverdueLoanRow = {
   id: string;
