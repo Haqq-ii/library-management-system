@@ -47,58 +47,64 @@ export async function getPopularBooks(params: {
     }
   }
 
+  // Guard against inverted date range — PostgreSQL would return 0 rows silently
+  if (from > to) {
+    return { success: false, error: "INVALID_DATE_RANGE" };
+  }
+
   try {
-    // Query loans in range with book info included
-    const loans = await prisma.loan.findMany({
-      where: {
-        issuedAt: {
-          gte: from,
-          lte: to,
-        },
-      },
-      include: {
-        copy: {
-          include: {
-            book: {
-              include: {
-                author: true,
-              },
-            },
-          },
-        },
-      },
+    // Aggregate loan counts per copy at the DB level — avoids loading all rows into Node.js memory
+    const groups = await prisma.loan.groupBy({
+      by: ["copyId"],
+      where: { issuedAt: { gte: from, lte: to } },
+      _count: { _all: true },
+      orderBy: { _count: { copyId: "desc" } },
+      take: 50,
     });
 
-    // Aggregate counts per book in JS (Loan has copyId, not bookId directly)
-    const bookMap = new Map<
+    if (groups.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    // Resolve book info for the top-50 copyIds with a single findMany
+    const copyIds = groups.map((g) => g.copyId);
+    const copies = await prisma.bookCopy.findMany({
+      where: { id: { in: copyIds } },
+      include: { book: { include: { author: true } } },
+    });
+
+    // Build a lookup map from copyId → book info
+    const copyMap = new Map(
+      copies.map((c: {
+        id: string;
+        book: { id: string; title: string; author: { name: string } };
+      }) => [c.id, c.book])
+    );
+
+    // Merge group counts with book info, aggregating counts per book
+    // (multiple copies of the same book are merged into one row)
+    const bookAgg = new Map<
       string,
       { title: string; author: string; borrowCount: number }
     >();
 
-    for (const loan of loans as Array<{
-      copy: {
-        book: {
-          id: string;
-          title: string;
-          author: { name: string };
-        };
-      };
-    }>) {
-      const book = loan.copy.book;
-      const existing = bookMap.get(book.id);
+    for (const group of groups) {
+      const book = copyMap.get(group.copyId);
+      if (!book) continue;
+      const existing = bookAgg.get(book.id);
       if (existing) {
-        existing.borrowCount += 1;
+        existing.borrowCount += group._count._all;
       } else {
-        bookMap.set(book.id, {
+        bookAgg.set(book.id, {
           title: book.title,
           author: book.author.name,
-          borrowCount: 1,
+          borrowCount: group._count._all,
         });
       }
     }
 
-    // Produce sorted result — borrowCount descending, limit top 50 (T-05-09)
-    const rows: PopularBookRow[] = Array.from(bookMap.entries())
+    // Sort by borrow count descending (already roughly sorted, but re-sort after book merging)
+    const rows: PopularBookRow[] = Array.from(bookAgg.entries())
       .map(([bookId, data]) => ({ bookId, ...data }))
       .sort((a, b) => b.borrowCount - a.borrowCount)
       .slice(0, 50);
