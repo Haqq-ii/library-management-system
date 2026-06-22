@@ -297,10 +297,10 @@ export async function returnBook(
 
     // Step 3: Fire hold-ready notification post-transaction (NOTF-03)
     // Must be outside the transaction so email failures never roll back the return.
-    if (data.holdTriggered && data.holdMemberEmail) {
-      sendHoldReady({
-        memberId: data.holdMemberId!,
-        memberEmail: data.holdMemberEmail!,
+    if (data.holdTriggered && data.holdMemberEmail && data.holdMemberId && data.reservationId) {
+      await sendHoldReady({
+        memberId: data.holdMemberId,
+        memberEmail: data.holdMemberEmail,
         memberName: data.holdMemberName ?? "",
         bookTitle: data.bookTitle ?? "",
         pickupWindowHours: PICKUP_WINDOW_HOURS,
