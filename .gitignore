@@ -47,3 +47,6 @@ next-env.d.ts
 
 # Prisma
 /src/generated/prisma
+
+# Database backups (T-04-14: backup files contain plaintext PII — never commit)
+/backups
