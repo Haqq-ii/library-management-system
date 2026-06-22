@@ -139,7 +139,24 @@ Plans:
   4. Every notification attempt (due-date reminder, overdue alert, hold-ready) is recorded with sent/failed status, member, and event type — librarian can inspect the delivery log
   5. Database backups run on a configured schedule (pg_dump or managed provider backup) — a backup can be verified to exist after the scheduled window
 
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+
+**Wave 1**
+
+- [ ] 04-01-PLAN.md — Email foundation: Resend deps (legitimacy checkpoint), sendAndLog + NotificationLog, three React Email templates, NOTF-04 tests
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 04-02-PLAN.md — Cron slice: remove standalone output, custom server.ts + node-cron, overdue-scan handler, due/overdue email wrappers (NOTF-01, NOTF-02)
+- [ ] 04-04-PLAN.md — Delivery log UI: getNotificationLog action, NotificationLogTable, /notifications page, sidebar nav (NOTF-04)
+- [ ] 04-05-PLAN.md — Backups: pg_dump sidecar in docker-compose, Railway + self-hosted docs, backup-exists checkpoint (INFRA-05)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 04-03-PLAN.md — Hold-ready slice: sendHoldReady wrapper, returnBook post-transaction email (NOTF-03)
+
+**UI hint**: yes
 
 ### Phase 5: Reports & Analytics
 
@@ -167,5 +184,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation | 2/8 | In Progress|  |
 | 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
 | 3. Fines, Reservations, Renewals & Audit | 6/6 | Complete   | 2026-06-21 |
-| 4. Notifications & Backups | 0/TBD | Not started | - |
+| 4. Notifications & Backups | 0/5 | Not started | - |
 | 5. Reports & Analytics | 0/TBD | Not started | - |
