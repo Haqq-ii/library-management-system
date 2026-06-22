@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Foundation** - Docker environment, auth, full schema, catalog CRUD, member management
 - [x] **Phase 2: Circulation Core** - Checkout, return flow, loan history for librarian and member (completed 2026-06-15)
 - [x] **Phase 3: Fines, Reservations, Renewals & Audit** - Fine lifecycle, hold queue, self-service renewal, audit log (completed 2026-06-21)
-- [ ] **Phase 4: Notifications & Backups** - Transactional email, scheduled overdue detection, delivery log, DB backup
+- [x] **Phase 4: Notifications & Backups** - Transactional email, scheduled overdue detection, delivery log, DB backup (completed 2026-06-22)
 - [ ] **Phase 5: Reports & Analytics** - Librarian dashboards, borrowing charts, all four report types
 
 ## Phase Details
@@ -154,7 +154,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 04-03-PLAN.md — Hold-ready slice: sendHoldReady wrapper, returnBook post-transaction email (NOTF-03)
+- [x] 04-03-PLAN.md — Hold-ready slice: sendHoldReady wrapper, returnBook post-transaction email (NOTF-03)
 
 **UI hint**: yes
 
@@ -184,5 +184,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation | 2/8 | In Progress|  |
 | 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
 | 3. Fines, Reservations, Renewals & Audit | 6/6 | Complete   | 2026-06-21 |
-| 4. Notifications & Backups | 4/5 | In Progress|  |
+| 4. Notifications & Backups | 5/5 | Complete   | 2026-06-22 |
 | 5. Reports & Analytics | 0/TBD | Not started | - |
