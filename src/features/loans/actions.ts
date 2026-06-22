@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { PICKUP_WINDOW_HOURS } from "@/lib/constants";
+import { sendHoldReady } from "@/lib/notifications";
 
 export type ActionResult<T> =
   | { success: true; data: T }
@@ -144,7 +145,14 @@ export async function checkoutBook(
 
 export async function returnBook(
   loanId: string
-): Promise<ActionResult<{ holdTriggered: boolean; holdMemberName?: string }>> {
+): Promise<ActionResult<{
+  holdTriggered: boolean;
+  holdMemberName?: string;
+  holdMemberId?: string;
+  holdMemberEmail?: string;
+  bookTitle?: string;
+  reservationId?: string;
+}>> {
   // Step 1: Auth guard — capture session for AuditLog actorId (AUD-01, CVE-2025-29927)
   let session;
   try {
@@ -270,6 +278,10 @@ export async function returnBook(
           return {
             holdTriggered: true,
             holdMemberName: pendingReservation.member.user.name,
+            holdMemberId: pendingReservation.member.id,
+            holdMemberEmail: pendingReservation.member.user.email,
+            bookTitle: loan.copy.book.title,
+            reservationId: pendingReservation.id,
           };
         } else {
           // No hold: set copy back to AVAILABLE
@@ -283,7 +295,20 @@ export async function returnBook(
       }
     );
 
-    // Step 3: Revalidate pages and return success
+    // Step 3: Fire hold-ready notification post-transaction (NOTF-03)
+    // Must be outside the transaction so email failures never roll back the return.
+    if (data.holdTriggered && data.holdMemberEmail) {
+      sendHoldReady({
+        memberId: data.holdMemberId!,
+        memberEmail: data.holdMemberEmail!,
+        memberName: data.holdMemberName ?? "",
+        bookTitle: data.bookTitle ?? "",
+        pickupWindowHours: PICKUP_WINDOW_HOURS,
+        idempotencyKey: `HOLD_READY/${data.reservationId}`,
+      }).catch((err) => console.error("[sendHoldReady] email failed:", err));
+    }
+
+    // Step 4: Revalidate pages and return success
     revalidatePath("/loans");
     revalidatePath("/my-loans");
     return { success: true, data };

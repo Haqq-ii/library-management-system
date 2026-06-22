@@ -14,6 +14,7 @@ import * as React from "react";
 import { sendAndLog, type NotificationType } from "@/lib/email";
 import { DueDateReminderEmail } from "@/emails/DueDateReminderEmail";
 import { OverdueAlertEmail } from "@/emails/OverdueAlertEmail";
+import { HoldReadyEmail } from "@/emails/HoldReadyEmail";
 
 // Minimal loan shape required by notification wrappers — mirrors the Prisma
 // include used in overdue-scan.ts (member.user + copy.book)
@@ -106,6 +107,41 @@ export async function sendOverdueAlert(
     }),
     memberId: loan.memberId,
     type: "OVERDUE_ALERT",
+    idempotencyKey,
+  });
+}
+
+export interface SendHoldReadyOpts {
+  memberId: string;
+  memberEmail: string;
+  memberName: string;
+  bookTitle: string;
+  pickupWindowHours: number;
+  idempotencyKey: string;
+}
+
+/**
+ * Send a hold-ready pickup notification email (NOTF-03).
+ * Called post-transaction when a returned copy advances a PENDING reservation to READY.
+ * idempotencyKey format: HOLD_READY/<reservationId> — NO date component (reservation ID
+ * is globally unique so no date suffix is needed for deduplication).
+ * Never call this inside a Prisma transaction.
+ */
+export async function sendHoldReady(
+  opts: SendHoldReadyOpts
+): Promise<{ success: boolean }> {
+  const { memberId, memberEmail, memberName, bookTitle, pickupWindowHours, idempotencyKey } = opts;
+
+  return sendAndLog({
+    to: memberEmail,
+    subject: "Your reserved book is ready for pickup",
+    react: React.createElement(HoldReadyEmail, {
+      memberName,
+      bookTitle,
+      pickupWindowHours,
+    }),
+    memberId,
+    type: "HOLD_READY" as NotificationType,
     idempotencyKey,
   });
 }
