@@ -184,7 +184,7 @@ Plans:
 
 **Wave 3** *(blocked on 05-02)*
 
-- [ ] 05-03-PLAN.md — RPT-02 Popular Books slice: getPopularBooks (date filter), PopularBooksTable, tab wiring
+- [x] 05-03-PLAN.md — RPT-02 Popular Books slice: getPopularBooks (date filter), PopularBooksTable, tab wiring
 
 **Wave 4** *(blocked on 05-01, 05-03)*
 
@@ -203,4 +203,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
 | 3. Fines, Reservations, Renewals & Audit | 6/6 | Complete   | 2026-06-21 |
 | 4. Notifications & Backups | 5/5 | Complete   | 2026-06-22 |
-| 5. Reports & Analytics | 2/4 | In Progress|  |
+| 5. Reports & Analytics | 3/4 | In Progress|  |
