@@ -176,7 +176,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 05-01-PLAN.md — Install recharts, /reports page shell + Tabs + sidebar nav, RPT-04 Fine Summary slice
+- [x] 05-01-PLAN.md — Install recharts, /reports page shell + Tabs + sidebar nav, RPT-04 Fine Summary slice
 
 **Wave 2** *(blocked on 05-01)*
 
@@ -203,4 +203,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
 | 3. Fines, Reservations, Renewals & Audit | 6/6 | Complete   | 2026-06-21 |
 | 4. Notifications & Backups | 5/5 | Complete   | 2026-06-22 |
-| 5. Reports & Analytics | 0/4 | Not started | - |
+| 5. Reports & Analytics | 1/4 | In Progress|  |
