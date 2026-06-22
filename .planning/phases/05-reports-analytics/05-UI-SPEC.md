@@ -1,10 +1,11 @@
 ---
 phase: 5
 slug: reports-analytics
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova / neutral / cssVariables
 created: 2026-06-23
+reviewed_at: 2026-06-23
 ---
 
 # Phase 5 — UI Design Contract
@@ -61,14 +62,13 @@ Inherited from existing codebase. All sizes are applied via Tailwind utility cla
 | Role | Size | Weight | Line Height | Tailwind Class | Usage |
 |------|------|--------|-------------|----------------|-------|
 | Body | 14px | 400 (regular) | 1.5 | `text-sm` | Table cells, filter labels, badge text, muted captions |
-| Label | 14px | 500 (medium) | 1.5 | `text-sm font-medium` | Table column headers, card stat labels (`text-muted-foreground`) |
+| Label | 14px | 600 (semibold) | 1.5 | `text-sm font-semibold` | Table column headers, card stat labels (`text-muted-foreground`) |
 | Heading | 20px | 600 (semibold) | 1.2 | `text-xl font-semibold` | Card titles (CardTitle), section headings within reports |
 | Display | 24px | 600 (semibold) | 1.2 | `text-2xl font-semibold` | Page title (`<h1>`) — matches all existing page headings |
 
 Notes:
-- Stat numbers in summary cards (RPT-04 fine totals): `text-3xl font-bold` — matches DashboardStats.tsx established pattern.
-- Monospace font (`font-mono text-xs`) for any copy barcodes if shown inline — existing LoansTable pattern.
-- No new type sizes or weights. This phase adds zero new typographic tokens.
+- Stat numbers in summary cards (RPT-04 fine totals): `text-2xl font-semibold` — collapses to the Display size slot (24px). Visual distinction at this size is sufficient without adding a 5th size or 4th weight.
+- This phase adds zero new typographic tokens. All sizes use regular (400) or semibold (600) weight.
 
 ---
 
@@ -85,7 +85,7 @@ All values are OKLCH CSS variables from globals.css. Do not hardcode hex values 
 | Muted | `--muted-foreground` | oklch(0.556 0 0) — medium gray | Captions, secondary text, empty state body, filter label text |
 
 Accent reserved for:
-- The "Run Report" / "Apply" primary action button (variant="default")
+- The "Run Report" / "Apply Filter" primary action button (variant="default")
 - Active sort column indicator (column header chevron)
 - Active nav item indicator (border-l-2 border-slate-900 — existing AppSidebar pattern, unchanged)
 
@@ -96,7 +96,7 @@ Semantic color rules for this phase:
   - `--chart-2` (oklch(0.556 0 0), medium gray): "Loans Returned" series
   - Chart fill/stroke must reference `var(--chart-1)` and `var(--chart-2)` via the Tailwind `--color-chart-*` mappings.
 - Fine summary badges:
-  - Total recorded: no badge, plain `text-3xl font-bold`
+  - Total recorded: no badge, plain `text-2xl font-semibold`
   - Total waived: `bg-orange-100 text-orange-800` (matches FINE_WAIVED badge in AuditTable.tsx)
   - Total outstanding: `bg-red-100 text-red-800`
 
@@ -175,20 +175,20 @@ The existing `Input type="date"` pattern (used in AuditTable) covers date range 
 ### RPT-02: Popular Books Tab
 
 ```
-[Filter bar: From [date input] To [date input] — Apply button]
+[Filter bar: From [date input] To [date input] — Apply Filter button]
 [Table: Rank | Title | Author | Borrow Count]
 [Pagination: Prev — Page N of M — Next]
 ```
 
 - Default date range: last 30 days (computed from today on server render).
 - Rank column: plain number, `text-sm text-muted-foreground`, width `w-12`.
-- Apply button triggers server refetch via `useTransition` — show `isPending` spinner on button.
+- Apply Filter button triggers server refetch via `useTransition` — show `isPending` spinner on button.
 - No empty-rank row — list starts at 1, no gaps.
 
 ### RPT-03: Borrowing Activity Tab
 
 ```
-[Filter bar: From [date input] To [date input] — Apply button]
+[Filter bar: From [date input] To [date input] — Apply Filter button]
 [Card: <AreaChart or LineChart from recharts, responsive, 320px height>]
 [Legend: "Loans Issued" (chart-1) | "Loans Returned" (chart-2)]
 ```
@@ -206,9 +206,9 @@ The existing `Input type="date"` pattern (used in AuditTable) covers date range 
 
 ```
 [Grid: 3 stat cards]
-  Card 1: "Total Fines Recorded"  — value in text-3xl font-bold
-  Card 2: "Total Waived"          — value in text-3xl font-bold, badge bg-orange-100
-  Card 3: "Total Outstanding"     — value in text-3xl font-bold, badge bg-red-100
+  Card 1: "Total Fines Recorded"  — value in text-2xl font-semibold
+  Card 2: "Total Waived"          — value in text-2xl font-semibold, badge bg-orange-100
+  Card 3: "Total Outstanding"     — value in text-2xl font-semibold, badge bg-red-100
 [Divider]
 [Summary note: "Outstanding = Recorded minus Waived" — text-sm text-muted-foreground]
 ```
@@ -251,7 +251,7 @@ Empty state layout: `py-12 text-center` — heading `text-base font-semibold`, b
 | Element | Copy |
 |---------|------|
 | Page title | "Reports" |
-| Primary CTA (RPT-02 / RPT-03 date filter) | "Apply" |
+| Primary CTA (RPT-02 / RPT-03 date filter) | "Apply Filter" |
 | Tab label 1 | "Overdue Loans" |
 | Tab label 2 | "Popular Books" |
 | Tab label 3 | "Borrowing Activity" |
@@ -334,11 +334,11 @@ No third-party shadcn registries declared. Registry safety gate: not triggered.
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved — 2026-06-23
