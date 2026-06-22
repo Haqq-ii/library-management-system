@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: context exhaustion at 75% (2026-06-21)
-last_updated: "2026-06-21T17:31:11.676Z"
-last_activity: 2026-06-21 -- Phase 03 execution started
+last_updated: "2026-06-22T12:18:40.213Z"
+last_activity: 2026-06-22 -- Phase 04 execution started
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 17
-  completed_plans: 10
-  percent: 20
+  completed_phases: 2
+  total_plans: 22
+  completed_plans: 14
+  percent: 40
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-09)
 
 **Core value:** Librarians can issue books, track returns, and see who has what — without paper records or spreadsheets.
-**Current focus:** Phase 03 — fines-reservations-renewals-audit
+**Current focus:** Phase 04 — notifications-backups
 
 ## Current Position
 
-Phase: 03 (fines-reservations-renewals-audit) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 03
-Last activity: 2026-06-21 -- Phase 03 execution started
+Phase: 04 (notifications-backups) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-06-22 -- Phase 04 execution started
 
 Progress: [██████████] 100%
 
@@ -52,6 +52,7 @@ Progress: [██████████] 100%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 04 P01 | 65 | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,7 @@ Recent decisions affecting current work:
 - [Pre-Phase 1]: Checkout uses `prisma.$transaction` with `SELECT FOR UPDATE` to prevent availability race condition
 - [Pre-Phase 1]: Docker-first dev environment from commit 1; Railway for production (persistent node-cron process)
 - [Phase 01 review]: /books/[id] is accessible to all authenticated users; isLibrarian passed as prop gates management UI — same page serves member read-only and librarian CRUD views
+- [Phase ?]: Used vi.hoisted() in Vitest for Resend mock — factories are hoisted above var declarations
 
 ### Pending Todos
 
@@ -89,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-21T17:31:11.671Z
+Last session: 2026-06-22T12:18:40.205Z
 Stopped at: context exhaustion at 75% (2026-06-21)
 Resume file: .planning/phases/03-fines-reservations-renewals-audit/03-UI-SPEC.md

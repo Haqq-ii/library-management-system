@@ -56,7 +56,7 @@
 - [ ] **NOTF-01**: System sends a due-date reminder email 3 days before and on the due date
 - [ ] **NOTF-02**: System sends an overdue alert email daily while a loan is overdue
 - [ ] **NOTF-03**: System sends a hold-ready email when a reserved copy is assigned to a member
-- [ ] **NOTF-04**: System logs notification delivery status (sent/failed) per member per event
+- [x] **NOTF-04**: System logs notification delivery status (sent/failed) per member per event
 
 ### Reports
 
@@ -158,7 +158,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTF-01 | Phase 4 | Pending |
 | NOTF-02 | Phase 4 | Pending |
 | NOTF-03 | Phase 4 | Pending |
-| NOTF-04 | Phase 4 | Pending |
+| NOTF-04 | Phase 4 | Complete |
 | INFRA-05 | Phase 4 | Pending |
 | RPT-01 | Phase 5 | Pending |
 | RPT-02 | Phase 5 | Pending |
@@ -166,6 +166,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RPT-04 | Phase 5 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 40 total
 - Mapped to phases: 40
 - Unmapped: 0 ✓

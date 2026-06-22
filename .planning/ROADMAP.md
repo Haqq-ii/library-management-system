@@ -144,7 +144,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 04-01-PLAN.md — Email foundation: Resend deps (legitimacy checkpoint), sendAndLog + NotificationLog, three React Email templates, NOTF-04 tests
+- [x] 04-01-PLAN.md — Email foundation: Resend deps (legitimacy checkpoint), sendAndLog + NotificationLog, three React Email templates, NOTF-04 tests
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -184,5 +184,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation | 2/8 | In Progress|  |
 | 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
 | 3. Fines, Reservations, Renewals & Audit | 6/6 | Complete   | 2026-06-21 |
-| 4. Notifications & Backups | 0/5 | Not started | - |
+| 4. Notifications & Backups | 1/5 | In Progress|  |
 | 5. Reports & Analytics | 0/TBD | Not started | - |
