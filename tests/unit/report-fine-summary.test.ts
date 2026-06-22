@@ -35,7 +35,8 @@ describe("getFineSummary", () => {
     vi.mocked(requireRole).mockResolvedValue(undefined as never);
     vi.mocked(prisma.fine.aggregate)
       .mockResolvedValueOnce({ _sum: { amount: 100 } } as never) // recorded
-      .mockResolvedValueOnce({ _sum: { amount: 30 } } as never);  // waived
+      .mockResolvedValueOnce({ _sum: { amount: 30 } } as never)  // waived
+      .mockResolvedValueOnce({ _sum: { amount: 0 } } as never);  // paid
 
     const result = await getFineSummary();
 
@@ -48,6 +49,7 @@ describe("getFineSummary", () => {
   it("Test 3: with zero fines (null aggregates), returns data { recorded: 0, waived: 0, outstanding: 0 } — no NaN", async () => {
     vi.mocked(requireRole).mockResolvedValue(undefined as never);
     vi.mocked(prisma.fine.aggregate)
+      .mockResolvedValueOnce({ _sum: { amount: null } } as never)
       .mockResolvedValueOnce({ _sum: { amount: null } } as never)
       .mockResolvedValueOnce({ _sum: { amount: null } } as never);
 
@@ -69,7 +71,8 @@ describe("getFineSummary", () => {
     vi.mocked(requireRole).mockResolvedValue(undefined as never);
     vi.mocked(prisma.fine.aggregate)
       .mockResolvedValueOnce({ _sum: { amount: 50.75 } } as never)
-      .mockResolvedValueOnce({ _sum: { amount: 10.25 } } as never);
+      .mockResolvedValueOnce({ _sum: { amount: 10.25 } } as never)
+      .mockResolvedValueOnce({ _sum: { amount: 0 } } as never);
 
     const result = await getFineSummary();
 
