@@ -8,13 +8,16 @@ vi.mock("@/lib/require-role", () => ({
 vi.mock("@/lib/db", () => {
   const tx = {
     $queryRaw: vi.fn(),
-    bookCopy: { update: vi.fn() },
+    bookCopy: { update: vi.fn(), findUnique: vi.fn().mockResolvedValue({ barcode: "BC-001" }) },
+    book: { findUnique: vi.fn().mockResolvedValue({ title: "Test Book" }) },
     loan: { create: vi.fn() },
+    auditLog: { create: vi.fn() },
   };
   return {
     prisma: {
       member: { findUnique: vi.fn() },
       loanPolicy: { findUnique: vi.fn() },
+      fine: { aggregate: vi.fn().mockResolvedValue({ _sum: { amount: 0 } }) },
       $transaction: vi.fn((cb) => cb(tx)),
       _tx: tx,
     },
@@ -38,10 +41,11 @@ describe("checkoutBook", () => {
   });
 
   it("Test 1: valid checkout returns success with loan id and creates loan", async () => {
-    vi.mocked(requireRole).mockResolvedValue({ user: { role: "LIBRARIAN" } } as never);
+    vi.mocked(requireRole).mockResolvedValue({ user: { role: "LIBRARIAN", id: "librarian-1" } } as never);
     vi.mocked(prisma.member.findUnique).mockResolvedValue({
       id: "member-1",
       memberType: "STUDENT",
+      user: { id: "user-1", name: "Alice Student" },
     } as never);
     vi.mocked(prisma.loanPolicy.findUnique).mockResolvedValue({
       memberType: "STUDENT",
@@ -72,10 +76,11 @@ describe("checkoutBook", () => {
   });
 
   it("Test 2: no AVAILABLE copy returns NO_COPIES and creates no Loan", async () => {
-    vi.mocked(requireRole).mockResolvedValue({ user: { role: "LIBRARIAN" } } as never);
+    vi.mocked(requireRole).mockResolvedValue({ user: { role: "LIBRARIAN", id: "librarian-1" } } as never);
     vi.mocked(prisma.member.findUnique).mockResolvedValue({
       id: "member-1",
       memberType: "STUDENT",
+      user: { id: "user-1", name: "Alice Student" },
     } as never);
     vi.mocked(prisma.loanPolicy.findUnique).mockResolvedValue({
       memberType: "STUDENT",
@@ -99,10 +104,11 @@ describe("checkoutBook", () => {
   });
 
   it("Test 4: missing LoanPolicy returns NO_POLICY", async () => {
-    vi.mocked(requireRole).mockResolvedValue({ user: { role: "LIBRARIAN" } } as never);
+    vi.mocked(requireRole).mockResolvedValue({ user: { role: "LIBRARIAN", id: "librarian-1" } } as never);
     vi.mocked(prisma.member.findUnique).mockResolvedValue({
       id: "member-1",
       memberType: "STAFF",
+      user: { id: "user-1", name: "Alice Student" },
     } as never);
     vi.mocked(prisma.loanPolicy.findUnique).mockResolvedValue(null);
 

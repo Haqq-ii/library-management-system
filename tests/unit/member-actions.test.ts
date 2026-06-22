@@ -5,13 +5,15 @@ vi.mock("@/lib/require-role", () => ({
   requireRole: vi.fn(),
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    user: { findFirst: vi.fn(), update: vi.fn(), findMany: vi.fn() },
+vi.mock("@/lib/db", () => {
+  const mockPrisma: Record<string, unknown> = {
+    user: { findFirst: vi.fn(), update: vi.fn(), findMany: vi.fn(), findUnique: vi.fn() },
     member: { create: vi.fn(), findMany: vi.fn() },
-    $transaction: vi.fn(),
-  },
-}));
+    auditLog: { create: vi.fn() },
+  };
+  mockPrisma.$transaction = vi.fn((cb: (tx: typeof mockPrisma) => Promise<unknown>) => cb(mockPrisma));
+  return { prisma: mockPrisma };
+});
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),

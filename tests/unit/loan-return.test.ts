@@ -22,7 +22,11 @@ vi.mock("@/lib/db", () => {
     },
     reservation: {
       findFirst: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
+    },
+    auditLog: {
+      create: vi.fn(),
     },
   };
   return {
@@ -47,6 +51,7 @@ type MockTx = {
   bookCopy: { update: ReturnType<typeof vi.fn> };
   loanPolicy: { findUnique: ReturnType<typeof vi.fn> };
   reservation: { findFirst: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  auditLog: { create: ReturnType<typeof vi.fn> };
 };
 
 // Access the mocked tx object
@@ -89,7 +94,7 @@ describe("returnBook", () => {
     const futureDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const loan = makeLoan({ dueAt: futureDue });
 
-    vi.mocked(requireRole).mockResolvedValue(undefined as never);
+    vi.mocked(requireRole).mockResolvedValue({ user: { id: "librarian-1", role: "LIBRARIAN" } } as never);
     tx.loan.findUnique.mockResolvedValue(loan);
     tx.loanPolicy.findUnique.mockResolvedValue({ fineDailyRate: 0.25 });
     tx.fine.create.mockResolvedValue({ id: "fine-1" });
@@ -123,7 +128,7 @@ describe("returnBook", () => {
     const pastDue = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     const loan = makeLoan({ dueAt: pastDue });
 
-    vi.mocked(requireRole).mockResolvedValue(undefined as never);
+    vi.mocked(requireRole).mockResolvedValue({ user: { id: "librarian-1", role: "LIBRARIAN" } } as never);
     tx.loan.findUnique.mockResolvedValue(loan);
     tx.loanPolicy.findUnique.mockResolvedValue({ fineDailyRate: 0.25 });
     tx.fine.create.mockResolvedValue({ id: "fine-2", amount: 0.75 });
@@ -167,7 +172,7 @@ describe("returnBook", () => {
       },
     };
 
-    vi.mocked(requireRole).mockResolvedValue(undefined as never);
+    vi.mocked(requireRole).mockResolvedValue({ user: { id: "librarian-1", role: "LIBRARIAN" } } as never);
     tx.loan.findUnique.mockResolvedValue(loan);
     tx.loanPolicy.findUnique.mockResolvedValue({ fineDailyRate: 0.25 });
     tx.fine.create.mockResolvedValue({ id: "fine-3" });
@@ -201,7 +206,7 @@ describe("returnBook", () => {
   it("Test 4: returning an already-returned loan returns { success: false, error: 'ALREADY_RETURNED' }", async () => {
     const returnedLoan = makeLoan({ returnedAt: new Date(Date.now() - 1000) });
 
-    vi.mocked(requireRole).mockResolvedValue(undefined as never);
+    vi.mocked(requireRole).mockResolvedValue({ user: { id: "librarian-1", role: "LIBRARIAN" } } as never);
     tx.loan.findUnique.mockResolvedValue(returnedLoan);
 
     const result = await returnBook("loan-1");
