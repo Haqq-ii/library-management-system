@@ -171,7 +171,25 @@ Plans:
   3. Librarian can view a borrowing activity chart showing loans issued and returned over time, rendered as an interactive chart
   4. Librarian can view a fine summary showing total fines recorded, total waived, and total outstanding
 
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+
+**Wave 1**
+
+- [ ] 05-01-PLAN.md — Install recharts, /reports page shell + Tabs + sidebar nav, RPT-04 Fine Summary slice
+
+**Wave 2** *(blocked on 05-01)*
+
+- [ ] 05-02-PLAN.md — RPT-01 Overdue Loans slice: getOverdueLoans, OverdueLoansTable (client sort), tab wiring
+
+**Wave 3** *(blocked on 05-02)*
+
+- [ ] 05-03-PLAN.md — RPT-02 Popular Books slice: getPopularBooks (date filter), PopularBooksTable, tab wiring
+
+**Wave 4** *(blocked on 05-01, 05-03)*
+
+- [ ] 05-04-PLAN.md — RPT-03 Borrowing Activity slice: getBorrowingActivity, recharts BorrowingActivityChart, tab wiring
+
 **UI hint**: yes
 
 ## Progress
@@ -185,4 +203,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Circulation Core | 3/3 | Complete   | 2026-06-15 |
 | 3. Fines, Reservations, Renewals & Audit | 6/6 | Complete   | 2026-06-21 |
 | 4. Notifications & Backups | 5/5 | Complete   | 2026-06-22 |
-| 5. Reports & Analytics | 0/TBD | Not started | - |
+| 5. Reports & Analytics | 0/4 | Not started | - |
