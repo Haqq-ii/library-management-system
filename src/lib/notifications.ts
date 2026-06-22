@@ -141,7 +141,7 @@ export async function sendHoldReady(
       pickupWindowHours,
     }),
     memberId,
-    type: "HOLD_READY" as NotificationType,
+    type: "HOLD_READY",
     idempotencyKey,
   });
 }
