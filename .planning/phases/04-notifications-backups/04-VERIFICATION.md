@@ -1,8 +1,8 @@
 ---
 phase: 04-notifications-backups
-status: human_needed
+status: passed
 verified_at: 2026-06-22
-score: 4/5 automated truths verified; SC-5 requires human confirmation
+score: 5/5 all success criteria verified
 human_verification:
   - test: "Run docker compose up -d db db-backup, then docker compose exec db-backup sh -c 'pg_dump -Fc library_dev > /backups/db-manual.dump', then ls -la ./backups/ to confirm a non-zero .dump file exists"
     expected: "A db-manual.dump (or db-YYYY-MM-DD.dump) file with size > 0 bytes exists in ./backups/"

@@ -1,5 +1,5 @@
 ---
-status: testing
+status: resolved
 phase: 04-notifications-backups
 source: [04-VERIFICATION.md]
 started: 2026-06-22T16:30:00.000Z
