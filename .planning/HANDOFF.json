@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-06-22T13:31:29.689Z",
+  "phase": "04",
+  "phase_name": "notifications-backups",
+  "phase_dir": ".planning/phases/04-notifications-backups",
+  "plan": 3,
+  "task": 0,
+  "total_tasks": 1,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": "04-01", "name": "Email foundation: Resend deps, sendAndLog, three React Email templates", "status": "done", "commit": "64304c7"},
+    {"id": "04-05", "name": "Database backup sidecar (docker-compose pg_dump + README docs)", "status": "done", "commit": "eacfd1c"},
+    {"id": "04-02", "name": "Cron slice: custom server.ts + node-cron + scanAndNotify (NOTF-01, NOTF-02)", "status": "done", "commit": "e045a83"},
+    {"id": "04-04", "name": "Notification delivery log UI: /notifications page + sidebar nav (NOTF-04)", "status": "done", "commit": "cceefdf"},
+    {"id": "test-fix", "name": "Fix stale Phase 3 test mocks (60/60 tests green)", "status": "done", "commit": "0b98f92"}
+  ],
+  "remaining_tasks": [
+    {"id": "04-03", "name": "Hold-ready slice: sendHoldReady in returnBook after transaction (NOTF-03)", "status": "not_started"}
+  ],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {"decision": "Removed output: standalone from next.config.ts", "rationale": "instrumentation.ts broken with standalone output (Next.js issue #89377); custom server.ts required for node-cron", "phase": "04"},
+    {"decision": "Dockerfile updated to standard Node.js build (tsx server.ts) instead of standalone runner", "rationale": "Follows from standalone removal; production start: NODE_ENV=production tsx server.ts", "phase": "04"},
+    {"decision": "Wave 1 ran sequentially (not parallel)", "rationale": "04-01 and 04-05 both modify .env.example — intra-wave file overlap forces sequential execution", "phase": "04"}
+  ],
+  "uncommitted_files": [".planning/phases/04-notifications-backups/04-PATTERNS.md (untracked, not needed for plan execution)"],
+  "next_action": "Run: /gsd-execute-phase 4 --wave 3   (executes only Wave 3: plan 04-03 hold-ready slice)",
+  "context_notes": "Context exhausted at 75% after Wave 2 completion and test mock fix. Wave 3 is a single autonomous plan (04-03): add sendHoldReady() call to returnBook after the transaction commits when holdTriggered=true. The email helper (sendAndLog) and HoldReadyEmail template are already in place from 04-01. The notifications.ts wrapper for sendHoldReady needs to be written, then wired into actions.ts returnBook."
+}
