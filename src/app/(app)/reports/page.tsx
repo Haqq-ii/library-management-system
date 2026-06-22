@@ -8,6 +8,8 @@ import { getOverdueLoans } from "@/features/reports/overdue";
 import { OverdueLoansTable } from "@/features/reports/OverdueLoansTable";
 import { getPopularBooks } from "@/features/reports/popular";
 import { PopularBooksTable } from "@/features/reports/PopularBooksTable";
+import { getBorrowingActivity } from "@/features/reports/activity";
+import { BorrowingActivityChart } from "@/features/reports/BorrowingActivityChart";
 
 export default async function ReportsPage() {
   // Auth guard: only librarians may access reports (T-05-01)
@@ -25,12 +27,18 @@ export default async function ReportsPage() {
   const overdueResult = await getOverdueLoans();
   const overdueRows = overdueResult.success ? overdueResult.data : [];
 
-  // Fetch popular books server-side for default last-30-days range (RPT-02)
+  // Compute default 30-day date range strings (shared by RPT-02 and RPT-03)
   const today = new Date();
   const toStr = today.toISOString().slice(0, 10);
   const fromStr = new Date(today.getTime() - 30 * 86_400_000).toISOString().slice(0, 10);
+
+  // Fetch popular books server-side for default last-30-days range (RPT-02)
   const popularResult = await getPopularBooks({ fromDate: fromStr, toDate: toStr });
   const popularRows = popularResult.success ? popularResult.data : [];
+
+  // Fetch borrowing activity server-side for default last-30-days range (RPT-03)
+  const activityResult = await getBorrowingActivity({ fromDate: fromStr, toDate: toStr });
+  const activityData = activityResult.success ? activityResult.data : [];
 
   return (
     <div className="space-y-6">
@@ -57,9 +65,11 @@ export default async function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="activity">
-          <p className="text-sm text-muted-foreground py-12 text-center">
-            Coming soon
-          </p>
+          <BorrowingActivityChart
+            initialData={activityData}
+            initialFrom={fromStr}
+            initialTo={toStr}
+          />
         </TabsContent>
 
         <TabsContent value="fines">
