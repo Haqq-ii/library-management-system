@@ -1,3 +1,4 @@
+// Server Component — no client-side state needed; receives pre-fetched props from ReportsPage
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -55,7 +56,7 @@ export function FineSummaryCards({
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Outstanding = Recorded minus Waived
+        Outstanding = Recorded minus Waived minus Paid (UNPAID fines only)
       </p>
     </div>
   );

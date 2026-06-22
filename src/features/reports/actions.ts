@@ -21,21 +21,22 @@ export async function getFineSummary(): Promise<
   }
 
   try {
-    // Sum of ALL fines (no status filter) — total fines recorded
-    const recordedAgg = await prisma.fine.aggregate({
-      _sum: { amount: true },
-    });
-
-    // Sum of WAIVED fines
-    const waivedAgg = await prisma.fine.aggregate({
-      _sum: { amount: true },
-      where: { status: "WAIVED" },
-    });
+    // Run all three aggregates in parallel for efficiency
+    const [recordedAgg, waivedAgg, paidAgg] = await Promise.all([
+      // Sum of ALL fines (no status filter) — total fines recorded
+      prisma.fine.aggregate({ _sum: { amount: true } }),
+      // Sum of WAIVED fines
+      prisma.fine.aggregate({ _sum: { amount: true }, where: { status: "WAIVED" } }),
+      // Sum of PAID fines
+      prisma.fine.aggregate({ _sum: { amount: true }, where: { status: "PAID" } }),
+    ]);
 
     // Convert Prisma Decimal to number; coerce null sums to 0
     const recorded = Number(recordedAgg._sum.amount ?? 0);
-    const waived = Number(waivedAgg._sum.amount ?? 0);
-    const outstanding = recorded - waived;
+    const waived   = Number(waivedAgg._sum.amount ?? 0);
+    const paid     = Number(paidAgg._sum.amount ?? 0);
+    // Outstanding = only UNPAID fines (recorded minus both waived and paid)
+    const outstanding = recorded - waived - paid;
 
     return {
       success: true,
