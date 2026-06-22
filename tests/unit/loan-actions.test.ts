@@ -28,6 +28,12 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+vi.mock("@/lib/notifications", () => ({
+  sendDueDateReminder: vi.fn(),
+  sendOverdueAlert: vi.fn(),
+  sendHoldReady: vi.fn(),
+}));
+
 import { checkoutBook } from "@/features/loans/actions";
 import { requireRole } from "@/lib/require-role";
 import { prisma } from "@/lib/db";
