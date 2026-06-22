@@ -41,16 +41,26 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+// NOTF-03: mock sendHoldReady from notifications module
+vi.mock("@/lib/notifications", () => ({
+  sendHoldReady: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 import { returnBook } from "@/features/loans/actions";
 import { requireRole } from "@/lib/require-role";
 import { prisma } from "@/lib/db";
+import { sendHoldReady } from "@/lib/notifications";
 
 type MockTx = {
   loan: { findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   fine: { create: ReturnType<typeof vi.fn> };
   bookCopy: { update: ReturnType<typeof vi.fn> };
   loanPolicy: { findUnique: ReturnType<typeof vi.fn> };
-  reservation: { findFirst: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  reservation: {
+    findFirst: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
   auditLog: { create: ReturnType<typeof vi.fn> };
 };
 
@@ -74,12 +84,13 @@ function makeLoan(overrides: {
     copy: {
       id: "copy-1",
       bookId: "book-1",
+      barcode: "BC001",
       book: { id: "book-1", title: "Test Book" },
     },
     member: {
       id: "member-1",
       memberType,
-      user: { id: "user-1", name: "Alice Student" },
+      user: { id: "user-1", name: "Alice Student", email: "alice@example.com" },
     },
   };
 }
@@ -168,7 +179,7 @@ describe("returnBook", () => {
       queuePosition: 1,
       member: {
         id: "member-2",
-        user: { id: "user-2", name: "Bob Faculty" },
+        user: { id: "user-2", name: "Bob Faculty", email: "bob@example.com" },
       },
     };
 
@@ -183,10 +194,12 @@ describe("returnBook", () => {
 
     const result = await returnBook("loan-1");
 
-    expect(result).toEqual({
-      success: true,
-      data: { holdTriggered: true, holdMemberName: "Bob Faculty" },
-    });
+    // Updated to use objectContaining since returnBook now returns additional hold fields
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.holdTriggered).toBe(true);
+      expect(result.data.holdMemberName).toBe("Bob Faculty");
+    }
     // Copy set to RESERVED
     expect(tx.bookCopy.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -222,5 +235,126 @@ describe("returnBook", () => {
     const result = await returnBook("loan-1");
 
     expect(result).toEqual({ success: false, error: "FORBIDDEN" });
+  });
+
+  // NOTF-03 tests: hold-ready email notification on return
+  describe("NOTF-03: hold-ready email on return", () => {
+    const makeReservation = (overrides: Partial<{
+      id: string;
+      email: string;
+      name: string;
+      memberId: string;
+    }> = {}) => ({
+      id: overrides.id ?? "res-notf-1",
+      bookId: "book-1",
+      memberId: overrides.memberId ?? "member-hold-1",
+      status: "PENDING",
+      queuePosition: 1,
+      member: {
+        id: overrides.memberId ?? "member-hold-1",
+        user: {
+          id: "user-hold-1",
+          name: overrides.name ?? "Carol Hold",
+          email: overrides.email ?? "carol@example.com",
+        },
+      },
+    });
+
+    it("NOTF-03-positive: sendHoldReady is called once after transaction when a PENDING reservation exists", async () => {
+      const loan = makeLoan({ dueAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
+      const reservation = makeReservation();
+
+      vi.mocked(requireRole).mockResolvedValue({ user: { id: "librarian-1", role: "LIBRARIAN" } } as never);
+      tx.loan.findUnique.mockResolvedValue(loan);
+      tx.loanPolicy.findUnique.mockResolvedValue({ fineDailyRate: 0.25 });
+      tx.fine.create.mockResolvedValue({ id: "fine-1" });
+      tx.loan.update.mockResolvedValue({ id: "loan-1", status: "RETURNED" });
+      tx.reservation.findFirst.mockResolvedValue(reservation);
+      tx.reservation.update.mockResolvedValue({ id: "res-notf-1", status: "READY" });
+      tx.bookCopy.update.mockResolvedValue({ id: "copy-1", status: "RESERVED" });
+
+      const result = await returnBook("loan-1");
+
+      // Return succeeds
+      expect(result.success).toBe(true);
+
+      // sendHoldReady called exactly once
+      expect(sendHoldReady).toHaveBeenCalledTimes(1);
+      // Called with correct member and book info
+      expect(sendHoldReady).toHaveBeenCalledWith(
+        expect.objectContaining({
+          memberId: "member-hold-1",
+          memberEmail: "carol@example.com",
+          memberName: "Carol Hold",
+          bookTitle: "Test Book",
+        })
+      );
+    });
+
+    it("NOTF-03-negative: sendHoldReady is NOT called when no PENDING reservation exists", async () => {
+      const loan = makeLoan({ dueAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
+
+      vi.mocked(requireRole).mockResolvedValue({ user: { id: "librarian-1", role: "LIBRARIAN" } } as never);
+      tx.loan.findUnique.mockResolvedValue(loan);
+      tx.loanPolicy.findUnique.mockResolvedValue({ fineDailyRate: 0.25 });
+      tx.fine.create.mockResolvedValue({ id: "fine-1" });
+      tx.loan.update.mockResolvedValue({ id: "loan-1", status: "RETURNED" });
+      tx.reservation.findFirst.mockResolvedValue(null); // no pending reservation
+      tx.bookCopy.update.mockResolvedValue({ id: "copy-1", status: "AVAILABLE" });
+
+      const result = await returnBook("loan-1");
+
+      expect(result.success).toBe(true);
+      // sendHoldReady must NOT be called
+      expect(sendHoldReady).not.toHaveBeenCalled();
+    });
+
+    it("NOTF-03-idempotency: idempotencyKey passed to sendHoldReady equals HOLD_READY/<reservationId> with no date component", async () => {
+      const loan = makeLoan({ dueAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
+      const reservation = makeReservation({ id: "res-abc-123" });
+
+      vi.mocked(requireRole).mockResolvedValue({ user: { id: "librarian-1", role: "LIBRARIAN" } } as never);
+      tx.loan.findUnique.mockResolvedValue(loan);
+      tx.loanPolicy.findUnique.mockResolvedValue({ fineDailyRate: 0.25 });
+      tx.fine.create.mockResolvedValue({ id: "fine-1" });
+      tx.loan.update.mockResolvedValue({ id: "loan-1", status: "RETURNED" });
+      tx.reservation.findFirst.mockResolvedValue(reservation);
+      tx.reservation.update.mockResolvedValue({ id: "res-abc-123", status: "READY" });
+      tx.bookCopy.update.mockResolvedValue({ id: "copy-1", status: "RESERVED" });
+
+      await returnBook("loan-1");
+
+      expect(sendHoldReady).toHaveBeenCalledTimes(1);
+      const callArgs = vi.mocked(sendHoldReady).mock.calls[0][0];
+      // Key must be exactly HOLD_READY/<reservationId> — no date suffix
+      expect(callArgs.idempotencyKey).toBe("HOLD_READY/res-abc-123");
+      // Verify no ISO date string appended (no toISOString pattern)
+      expect(callArgs.idempotencyKey).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+    });
+
+    it("NOTF-03-no-throw: if sendHoldReady rejects, returnBook still returns success:true (email failure must not fail the return)", async () => {
+      const loan = makeLoan({ dueAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
+      const reservation = makeReservation();
+
+      vi.mocked(requireRole).mockResolvedValue({ user: { id: "librarian-1", role: "LIBRARIAN" } } as never);
+      tx.loan.findUnique.mockResolvedValue(loan);
+      tx.loanPolicy.findUnique.mockResolvedValue({ fineDailyRate: 0.25 });
+      tx.fine.create.mockResolvedValue({ id: "fine-1" });
+      tx.loan.update.mockResolvedValue({ id: "loan-1", status: "RETURNED" });
+      tx.reservation.findFirst.mockResolvedValue(reservation);
+      tx.reservation.update.mockResolvedValue({ id: "res-notf-1", status: "READY" });
+      tx.bookCopy.update.mockResolvedValue({ id: "copy-1", status: "RESERVED" });
+
+      // sendHoldReady throws a network error
+      vi.mocked(sendHoldReady).mockRejectedValueOnce(new Error("Resend network error"));
+
+      const result = await returnBook("loan-1");
+
+      // Despite sendHoldReady throwing, the return still succeeds
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.holdTriggered).toBe(true);
+      }
+    });
   });
 });
