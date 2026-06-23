@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // vi.hoisted() ensures sendMock is available when vi.mock() factory runs
+// Also set RESEND_API_KEY so the singleton initializes (not null) in test env
 const { sendMock } = vi.hoisted(() => {
+  process.env.RESEND_API_KEY = "test-key";
   return { sendMock: vi.fn() };
 });
 

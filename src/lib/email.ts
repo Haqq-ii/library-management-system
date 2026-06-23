@@ -7,9 +7,16 @@ import type * as React from "react";
 import { prisma } from "@/lib/db";
 
 // Singleton pattern mirrors src/lib/db.ts (globalThis guard for Next.js hot-reload)
-const globalForResend = globalThis as unknown as { resend: Resend | undefined };
+const globalForResend = globalThis as unknown as { resend: Resend | null | undefined };
 
-const resend = globalForResend.resend ?? new Resend(process.env.RESEND_API_KEY);
+// null when RESEND_API_KEY is absent — sendAndLog skips sending and logs a warning.
+// Instantiating Resend without a key throws at module load time.
+const resend: Resend | null =
+  globalForResend.resend !== undefined
+    ? globalForResend.resend
+    : process.env.RESEND_API_KEY
+      ? new Resend(process.env.RESEND_API_KEY)
+      : null;
 
 if (process.env.NODE_ENV !== "production") {
   globalForResend.resend = resend;
@@ -45,22 +52,29 @@ export async function sendAndLog(
 ): Promise<{ success: boolean }> {
   let success = false;
 
-  try {
-    const { data, error } = await resend.emails.send(
-      {
-        from:
-          process.env.RESEND_FROM_EMAIL ?? "Library <onboarding@resend.dev>",
-        to: [opts.to],
-        subject: opts.subject,
-        react: opts.react,
-      },
-      { idempotencyKey: opts.idempotencyKey }
+  if (!resend) {
+    // RESEND_API_KEY not set — skip sending in development, continue workflow
+    console.warn(
+      `[email] RESEND_API_KEY missing — skipping ${opts.type} email to ${opts.to}`
     );
+  } else {
+    try {
+      const { data, error } = await resend.emails.send(
+        {
+          from:
+            process.env.RESEND_FROM_EMAIL ?? "Library <onboarding@resend.dev>",
+          to: [opts.to],
+          subject: opts.subject,
+          react: opts.react,
+        },
+        { idempotencyKey: opts.idempotencyKey }
+      );
 
-    success = !error && !!data?.id;
-  } catch {
-    // Resend network/SDK error — log failure, do not rethrow (NOTF-04)
-    success = false;
+      success = !error && !!data?.id;
+    } catch {
+      // Resend network/SDK error — log failure, do not rethrow (NOTF-04)
+      success = false;
+    }
   }
 
   // ALWAYS write NotificationLog — outside any transaction (Pitfall 2)
@@ -70,7 +84,8 @@ export async function sendAndLog(
       type: opts.type,
       channel: "EMAIL",
       success,
-      metadata: opts.metadata ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      metadata: opts.metadata as any,
     },
   });
 
